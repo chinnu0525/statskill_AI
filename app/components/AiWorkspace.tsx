@@ -8,6 +8,7 @@ import {
   askGroundedTutor,
   generateDocumentQuiz,
   listQuizReadyDocuments,
+  type LocalAiProgress,
   type TutorResult,
 } from "../../src/services/ai";
 import type { LearningDocument } from "../../src/services/documents";
@@ -25,7 +26,7 @@ export function AiWorkspace({
 }) {
   const [documents, setDocuments] = useState<LearningDocument[]>([]);
   const [documentId, setDocumentId] = useState("");
-  const [questionCount, setQuestionCount] = useState(5);
+  const [questionCount, setQuestionCount] = useState(3);
   const [difficulty, setDifficulty] = useState<AiDifficulty>("MEDIUM");
   const [quizRequestId, setQuizRequestId] = useState<string | null>(null);
   const [quizBusy, setQuizBusy] = useState(false);
@@ -56,10 +57,21 @@ export function AiWorkspace({
   }, [locale]);
 
   function aiErrorMessage(error: unknown, fallback: string) {
-    if (error instanceof AiApiError && ["AI_GATEWAY_NOT_CONFIGURED", "AI_GATEWAY_AUTH_NOT_CONFIGURED"].includes(error.code)) {
-      return copy.gatewayNotConfigured;
-    }
+    if (!(error instanceof AiApiError)) return fallback;
+    if (error.code === "LOCAL_AI_WEBGPU_REQUIRED") return copy.localAiWebGpuRequired;
+    if (error.code === "LOCAL_AI_MODEL_LOAD_FAILED") return copy.localAiLoadFailed;
+    if (error.code === "LOCAL_AI_OUTPUT_INVALID") return copy.localAiOutputInvalid;
+    if (error.code === "LOCAL_AI_GROUNDING_REQUIRED") return copy.localAiGroundingRequired;
     return fallback;
+  }
+
+  function localProgressMessage(progress: LocalAiProgress) {
+    if (progress.stage === "ready") return copy.localAiReady;
+    if (progress.stage === "generating") return copy.localAiGenerating;
+    if (progress.stage === "loading" && progress.progress !== null) {
+      return `${copy.localAiLoading} ${Math.round(progress.progress * 100)}%`;
+    }
+    return copy.localAiPreparing;
   }
 
   async function handleGenerateQuiz() {
@@ -67,9 +79,16 @@ export function AiWorkspace({
     const requestId = quizRequestId ?? crypto.randomUUID();
     if (!quizRequestId) setQuizRequestId(requestId);
     setQuizBusy(true);
-    setQuizMessage("");
+    setQuizMessage(copy.localAiPreparing);
     try {
-      const result = await generateDocumentQuiz({ documentId, locale, questionCount, difficulty, requestId });
+      const result = await generateDocumentQuiz({
+        documentId,
+        locale,
+        questionCount,
+        difficulty,
+        requestId,
+        onProgress: (progress) => setQuizMessage(localProgressMessage(progress)),
+      });
       setQuizRequestId(null);
       setQuizMessage(`${copy.quizReady}. ${copy.quizReadyHint}`);
       onQuizGenerated(result.assessmentId);
@@ -87,11 +106,17 @@ export function AiWorkspace({
     const requestId = tutorRequestId ?? crypto.randomUUID();
     if (!tutorRequestId) setTutorRequestId(requestId);
     setTutorBusy(true);
-    setTutorMessage("");
+    setTutorMessage(copy.localAiPreparing);
     setTutorResult(null);
     try {
-      const result = await askGroundedTutor({ locale, question: trimmed, requestId });
+      const result = await askGroundedTutor({
+        locale,
+        question: trimmed,
+        requestId,
+        onProgress: (progress) => setTutorMessage(localProgressMessage(progress)),
+      });
       setTutorRequestId(null);
+      setTutorMessage("");
       setTutorResult(result);
     } catch (error) {
       setTutorMessage(aiErrorMessage(error, copy.tutorFailed));
@@ -106,6 +131,7 @@ export function AiWorkspace({
         <div>
           <h2 id="ai-tools-title">{copy.aiTools}</h2>
           <p>{copy.aiToolsHint}</p>
+          <p className="muted">{copy.localAiHint}</p>
         </div>
         <span className="aiPrivacyNote">{copy.privacyNote}</span>
       </div>
@@ -144,7 +170,7 @@ export function AiWorkspace({
                 }}
                 disabled={quizBusy}
               >
-                {[5, 10, 15, 20].map((count) => <option key={count} value={count}>{count}</option>)}
+                {[3, 5, 10].map((count) => <option key={count} value={count}>{count}</option>)}
               </select>
             </label>
             <label className="aiField">
