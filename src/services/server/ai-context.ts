@@ -16,7 +16,6 @@ type ChunkRow = {
 };
 
 type TutorSearchRow = ChunkRow & {
-  source_title: string | null;
   rank: number | null;
 };
 
@@ -56,18 +55,17 @@ function selectDistributedChunks(chunks: GroundingContextChunk[], maxChunks = 24
   return withinBudget;
 }
 
-export async function loadQuizGroundingContext(admin: SupabaseClient, userId: string, documentId: string) {
-  const { data: document, error: documentError } = await admin
+export async function loadQuizGroundingContext(client: SupabaseClient, documentId: string) {
+  const { data: document, error: documentError } = await client
     .from("documents")
     .select("id,title,status")
     .eq("id", documentId)
-    .eq("owner_id", userId)
     .single();
 
   if (documentError || !document) throw new AiContextError("DOCUMENT_NOT_FOUND", 404);
   if (document.status !== "CHUNKED") throw new AiContextError("DOCUMENT_NOT_READY", 409);
 
-  const { data: rows, error: chunkError } = await admin
+  const { data: rows, error: chunkError } = await client
     .from("document_chunks")
     .select("id,document_id,chunk_index,content,metadata")
     .eq("document_id", documentId)
@@ -80,23 +78,18 @@ export async function loadQuizGroundingContext(admin: SupabaseClient, userId: st
 }
 
 export async function loadTutorGroundingContext(
-  admin: SupabaseClient,
-  userId: string,
+  client: SupabaseClient,
   question: string,
   limit = 8,
 ): Promise<GroundingContextChunk[]> {
   const boundedLimit = Math.min(Math.max(limit, 1), 12);
-  const { data: rows, error } = await admin.rpc("search_user_document_chunks", {
-    p_user_id: userId,
-    p_query: question,
-    p_limit: boundedLimit,
+  const { data: rows, error } = await client.rpc("search_my_document_chunks", {
+    search_query: question,
+    match_limit: boundedLimit,
   });
   if (error) throw error;
 
-  return (rows ?? []).map((rawRow: TutorSearchRow) => {
-    const row = rawRow;
-    return mapChunk(row, row.source_title?.trim() || "Learning material");
-  });
+  return (rows ?? []).map((rawRow: TutorSearchRow) => mapChunk(rawRow, "Learning material"));
 }
 
 export class AiContextError extends Error {
