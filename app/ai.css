@@ -1,0 +1,171 @@
+.aiWorkspace {
+  margin-top: 28px;
+  display: grid;
+  gap: 18px;
+}
+
+.aiWorkspaceHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.aiWorkspaceHeader h2,
+.aiCard h3 {
+  margin: 0;
+  color: #1a2029;
+}
+
+.aiWorkspaceHeader p,
+.aiCard p {
+  margin: 7px 0 0;
+  color: #5d646e;
+  line-height: 1.55;
+}
+
+.aiPrivacyNote {
+  max-width: 360px;
+  padding: 9px 12px;
+  border: 1px solid #dbe1e7;
+  border-radius: 10px;
+  background: #f8fafb;
+  color: #4c5662;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.aiGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.aiCard {
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid #dde3e8;
+  border-radius: 14px;
+  background: #fff;
+  display: grid;
+  align-content: start;
+  gap: 18px;
+}
+
+.aiCard h3 {
+  font-size: 18px;
+}
+
+.aiField {
+  display: grid;
+  gap: 7px;
+  color: #39424e;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.aiField select,
+.aiTutorForm textarea {
+  width: 100%;
+  border: 1px solid #cfd7df;
+  border-radius: 9px;
+  background: #fff;
+  color: #1c232c;
+  font: inherit;
+}
+
+.aiField select {
+  min-height: 42px;
+  padding: 0 11px;
+}
+
+.aiInlineFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.aiTutorForm {
+  display: grid;
+  gap: 10px;
+}
+
+.aiTutorForm textarea {
+  min-height: 126px;
+  resize: vertical;
+  padding: 12px;
+  line-height: 1.5;
+}
+
+.aiTutorFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.aiStatus {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: #f3f6f8;
+  color: #3d4854;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.aiAnswer {
+  display: grid;
+  gap: 9px;
+  padding: 14px;
+  border: 1px solid #d9e2e9;
+  border-radius: 10px;
+  background: #fbfcfd;
+}
+
+.aiAnswer p {
+  margin: 0;
+  color: #26303b;
+  white-space: pre-wrap;
+}
+
+.aiSources {
+  display: grid;
+  gap: 6px;
+  color: #66707b;
+  font-size: 12px;
+}
+
+.aiSources > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.aiSources code {
+  padding: 3px 6px;
+  border-radius: 6px;
+  background: #eef2f5;
+  color: #45515e;
+  font-size: 11px;
+}
+
+@media (max-width: 880px) {
+  .aiGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .aiWorkspaceHeader {
+    display: grid;
+  }
+
+  .aiPrivacyNote {
+    max-width: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .aiInlineFields {
+    grid-template-columns: 1fr;
+  }
+}
