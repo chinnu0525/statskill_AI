@@ -15,14 +15,27 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Detect Node application
+        id: app
+        shell: bash
+        run: |
+          if [ -f package.json ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Setup Node
+        if: steps.app.outputs.present == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
       - name: Install dependencies
+        if: steps.app.outputs.present == 'true'
         run: npm install
       - name: Typecheck
+        if: steps.app.outputs.present == 'true'
         run: npx tsc --noEmit
       - name: Build
+        if: steps.app.outputs.present == 'true'
         run: npm run build
