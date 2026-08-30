@@ -1,0 +1,58 @@
+create extension if not exists vector with schema extensions;
+
+create table public.profiles (id uuid primary key references auth.users(id) on delete cascade, full_name text, email text, locale text not null default 'en' check(locale in ('en','hi','te')), role text not null default 'OFFICIAL' check(role in ('OFFICIAL','TRAINER','ADMIN','SUPER_ADMIN')), department text, created_at timestamptz not null default now(), updated_at timestamptz not null default now());
+create table public.competency_domains (id uuid primary key default gen_random_uuid(), code text unique not null, name text not null, description text, created_at timestamptz not null default now());
+create table public.competencies (id uuid primary key default gen_random_uuid(), domain_id uuid not null references public.competency_domains(id) on delete cascade, code text unique not null, name text not null, description text, created_at timestamptz not null default now());
+create table public.user_competencies (user_id uuid not null references public.profiles(id) on delete cascade, competency_id uuid not null references public.competencies(id) on delete cascade, score numeric(5,2) not null default 0 check(score between 0 and 100), assessed_at timestamptz, primary key(user_id,competency_id));
+create table public.skill_gaps (id uuid primary key default gen_random_uuid(), user_id uuid not null references public.profiles(id) on delete cascade, competency_id uuid not null references public.competencies(id) on delete cascade, priority text not null check(priority in ('LOW','MEDIUM','HIGH')), gap_score numeric(5,2) not null check(gap_score between 0 and 100), rationale text, created_at timestamptz not null default now(), unique(user_id,competency_id));
+create table public.courses (id uuid primary key default gen_random_uuid(), code text unique not null, source_system text not null default 'LOCAL', external_id text, competency_id uuid references public.competencies(id) on delete set null, level text, duration_minutes integer, created_at timestamptz not null default now());
+create table public.course_localizations (course_id uuid not null references public.courses(id) on delete cascade, locale text not null check(locale in ('en','hi','te')), title text not null, description text, primary key(course_id,locale));
+create table public.learning_enrollments (id uuid primary key default gen_random_uuid(), user_id uuid not null references public.profiles(id) on delete cascade, course_id uuid not null references public.courses(id) on delete cascade, progress numeric(5,2) not null default 0 check(progress between 0 and 100), status text not null default 'NOT_STARTED' check(status in ('NOT_STARTED','IN_PROGRESS','COMPLETED')), started_at timestamptz, completed_at timestamptz, unique(user_id,course_id));
+create table public.assessments (id uuid primary key default gen_random_uuid(), title text not null, competency_id uuid references public.competencies(id) on delete set null, locale text not null default 'en' check(locale in ('en','hi','te')), created_at timestamptz not null default now());
+create table public.documents (id uuid primary key default gen_random_uuid(), owner_id uuid references public.profiles(id) on delete set null, title text not null, storage_path text, status text not null default 'PENDING', created_at timestamptz not null default now());
+create table public.questions (id uuid primary key default gen_random_uuid(), assessment_id uuid not null references public.assessments(id) on delete cascade, question_text text not null, options jsonb not null, correct_answer text not null, explanation text, source_document_id uuid references public.documents(id) on delete set null, created_at timestamptz not null default now());
+create table public.assessment_attempts (id uuid primary key default gen_random_uuid(), assessment_id uuid not null references public.assessments(id) on delete cascade, user_id uuid not null references public.profiles(id) on delete cascade, score numeric(5,2) check(score between 0 and 100), started_at timestamptz not null default now(), completed_at timestamptz);
+create table public.document_chunks (id uuid primary key default gen_random_uuid(), document_id uuid not null references public.documents(id) on delete cascade, chunk_index integer not null, content text not null, embedding extensions.vector(1536), metadata jsonb not null default '{}'::jsonb, unique(document_id,chunk_index));
+create table public.recommendations (id uuid primary key default gen_random_uuid(), user_id uuid not null references public.profiles(id) on delete cascade, course_id uuid references public.courses(id) on delete cascade, reason text not null, priority integer not null default 0, created_at timestamptz not null default now());
+create table public.external_catalog_items (id uuid primary key default gen_random_uuid(), source_system text not null, external_id text not null, title text not null, locale text not null default 'en' check(locale in ('en','hi','te')), url text, metadata jsonb not null default '{}'::jsonb, unique(source_system,external_id,locale));
+create table public.audit_events (id uuid primary key default gen_random_uuid(), actor_id uuid references public.profiles(id) on delete set null, action text not null, entity_type text, entity_id uuid, metadata jsonb not null default '{}'::jsonb, created_at timestamptz not null default now());
+
+alter table public.profiles enable row level security;
+alter table public.competency_domains enable row level security;
+alter table public.competencies enable row level security;
+alter table public.user_competencies enable row level security;
+alter table public.skill_gaps enable row level security;
+alter table public.courses enable row level security;
+alter table public.course_localizations enable row level security;
+alter table public.learning_enrollments enable row level security;
+alter table public.assessments enable row level security;
+alter table public.questions enable row level security;
+alter table public.assessment_attempts enable row level security;
+alter table public.documents enable row level security;
+alter table public.document_chunks enable row level security;
+alter table public.recommendations enable row level security;
+alter table public.external_catalog_items enable row level security;
+alter table public.audit_events enable row level security;
+
+create policy profiles_self_select on public.profiles for select to authenticated using ((select auth.uid())=id);
+create policy profiles_self_update on public.profiles for update to authenticated using ((select auth.uid())=id) with check ((select auth.uid())=id);
+create policy domains_select on public.competency_domains for select to authenticated using(true);
+create policy competencies_select on public.competencies for select to authenticated using(true);
+create policy courses_select on public.courses for select to authenticated using(true);
+create policy course_localizations_select on public.course_localizations for select to authenticated using(true);
+create policy user_competencies_select on public.user_competencies for select to authenticated using((select auth.uid())=user_id);
+create policy skill_gaps_select on public.skill_gaps for select to authenticated using((select auth.uid())=user_id);
+create policy enrollments_all on public.learning_enrollments for all to authenticated using((select auth.uid())=user_id) with check((select auth.uid())=user_id);
+create policy attempts_all on public.assessment_attempts for all to authenticated using((select auth.uid())=user_id) with check((select auth.uid())=user_id);
+create policy documents_owner_all on public.documents for all to authenticated using((select auth.uid())=owner_id) with check((select auth.uid())=owner_id);
+create policy chunks_owner_select on public.document_chunks for select to authenticated using(exists(select 1 from public.documents d where d.id=document_id and d.owner_id=(select auth.uid())));
+create policy recommendations_select on public.recommendations for select to authenticated using((select auth.uid())=user_id);
+create policy assessments_select on public.assessments for select to authenticated using(true);
+create policy questions_select on public.questions for select to authenticated using(true);
+create policy external_catalog_select on public.external_catalog_items for select to authenticated using(true);
+create policy audit_select on public.audit_events for select to authenticated using((select auth.uid())=actor_id);
+
+insert into public.competency_domains(code,name,description) values ('STAT','Statistical Foundations','Core statistical concepts and methods'),('TECH','Technical Skills','Programming, data and analytical tooling'),('DIGITAL','Digital & Data Literacy','Digital workflows and data practices');
+insert into public.competencies(domain_id,code,name,description) select d.id,v.code,v.name,v.description from public.competency_domains d join (values ('STAT','STAT-SAMPLING','Sampling & Survey Methods','Sampling concepts and survey design'),('STAT','STAT-ANALYSIS','Statistical Analysis','Descriptive and inferential analysis'),('TECH','TECH-PYTHON','Python for Statistics','Python programming for statistical workflows'),('TECH','TECH-GIS','GIS & Spatial Analysis','Geospatial data and analysis'),('TECH','TECH-AIML','AI & Machine Learning','Foundations of AI/ML for data work'),('DIGITAL','DIG-DATA','Data Management','Data quality, management and governance')) v(domain_code,code,name,description) on d.code=v.domain_code;
+insert into public.courses(code,source_system,competency_id,level,duration_minutes) select v.code,'LOCAL',c.id,v.level,v.duration from (values ('PY-STAT','TECH-PYTHON','BEGINNER',180),('GIS-101','TECH-GIS','BEGINNER',150),('AIML-101','TECH-AIML','BEGINNER',180)) v(code,competency_code,level,duration) join public.competencies c on c.code=v.competency_code;
+insert into public.course_localizations(course_id,locale,title,description) select c.id,v.locale,v.title,v.description from public.courses c join (values ('PY-STAT','en','Python for Official Statistics','Practical Python foundations for statistical workflows.'),('PY-STAT','hi','आधिकारिक सांख्यिकी के लिए Python','सांख्यिकीय कार्यप्रवाह के लिए Python की व्यावहारिक आधारभूत जानकारी।'),('PY-STAT','te','అధికారిక గణాంకాల కోసం Python','గణాంక కార్యప్రవాహాల కోసం Python ప్రాథమిక అంశాలు.'),('GIS-101','en','GIS Fundamentals','Foundations of geospatial data and analysis.'),('GIS-101','hi','GIS की मूल बातें','भू-स्थानिक डेटा और विश्लेषण की आधारभूत जानकारी।'),('GIS-101','te','GIS ప్రాథమికాలు','భౌగోళిక డేటా మరియు విశ్లేషణకు ప్రాథమిక పరిచయం.'),('AIML-101','en','AI / ML Foundations','Foundations of AI and machine learning for data work.'),('AIML-101','hi','AI / ML की मूल बातें','डेटा कार्य के लिए AI और मशीन लर्निंग की आधारभूत जानकारी।'),('AIML-101','te','AI / ML ప్రాథమికాలు','డేటా పనుల కోసం AI మరియు మెషిన్ లెర్నింగ్ ప్రాథమికాలు.')) v(code,locale,title,description) on c.code=v.code;
