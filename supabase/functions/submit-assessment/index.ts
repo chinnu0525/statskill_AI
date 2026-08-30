@@ -21,8 +21,15 @@ Deno.serve(async (req: Request) => {
   try { body = await req.json(); } catch { return new Response(JSON.stringify({ error: "invalid_json" }), { status: 400, headers: jsonHeaders }); }
   if (!body.assessmentId || !Array.isArray(body.answers)) return new Response(JSON.stringify({ error: "invalid_request" }), { status: 400, headers: jsonHeaders });
 
-  const { data: assessment, error: assessmentError } = await admin.from("assessments").select("id,competency_id").eq("id", body.assessmentId).single();
+  const { data: assessment, error: assessmentError } = await admin
+    .from("assessments")
+    .select("id,competency_id,owner_id")
+    .eq("id", body.assessmentId)
+    .single();
   if (assessmentError || !assessment) return new Response(JSON.stringify({ error: "assessment_not_found" }), { status: 404, headers: jsonHeaders });
+  if (assessment.owner_id && assessment.owner_id !== userData.user.id) {
+    return new Response(JSON.stringify({ error: "forbidden" }), { status: 403, headers: jsonHeaders });
+  }
 
   const { data: questions, error: questionsError } = await admin.from("questions").select("id").eq("assessment_id", body.assessmentId);
   if (questionsError || !questions?.length) return new Response(JSON.stringify({ error: "assessment_has_no_questions" }), { status: 400, headers: jsonHeaders });
