@@ -1,4 +1,3 @@
-import { z } from "zod";
 import { AiContractValidationError } from "../../../../src/domain/ai";
 import { authenticateBearerRequest, ServerAuthError } from "../../../../src/lib/server/supabase-admin";
 import { AiContextError, loadQuizGroundingContext } from "../../../../src/services/server/ai-context";
@@ -11,13 +10,28 @@ import { configuredGatewayModel, VercelAiGatewayProvider } from "../../../../src
 
 export const runtime = "nodejs";
 
-const requestSchema = z.object({
-  requestId: z.string().uuid(),
-  documentId: z.string().uuid(),
-  locale: z.enum(["en", "hi", "te"]),
-  questionCount: z.number().int().min(1).max(20),
-  difficulty: z.enum(["EASY", "MEDIUM", "HARD"]),
-}).strict();
+type GenerateQuizRequest = {
+  requestId: string;
+  documentId: string;
+  locale: "en" | "hi" | "te";
+  questionCount: number;
+  difficulty: "EASY" | "MEDIUM" | "HARD";
+};
+
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function parseRequest(value: unknown): GenerateQuizRequest | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const body = value as Record<string, unknown>;
+  const keys = Object.keys(body);
+  if (keys.some((key) => !["requestId", "documentId", "locale", "questionCount", "difficulty"].includes(key))) return null;
+  if (typeof body.requestId !== "string" || !uuidPattern.test(body.requestId)) return null;
+  if (typeof body.documentId !== "string" || !uuidPattern.test(body.documentId)) return null;
+  if (body.locale !== "en" && body.locale !== "hi" && body.locale !== "te") return null;
+  if (!Number.isInteger(body.questionCount) || (body.questionCount as number) < 1 || (body.questionCount as number) > 20) return null;
+  if (body.difficulty !== "EASY" && body.difficulty !== "MEDIUM" && body.difficulty !== "HARD") return null;
+  return body as GenerateQuizRequest;
+}
 
 function jsonError(code: string, status: number) {
   return Response.json({ error: code }, { status });
@@ -26,6 +40,7 @@ function jsonError(code: string, status: number) {
 function safeErrorCode(error: unknown) {
   if (error instanceof AiContractValidationError) return "AI_OUTPUT_VALIDATION_FAILED";
   if (error instanceof Error && error.message === "AI_GATEWAY_MODEL_NOT_CONFIGURED") return "AI_GATEWAY_NOT_CONFIGURED";
+  if (error instanceof Error && error.message === "AI_GATEWAY_AUTH_NOT_CONFIGURED") return "AI_GATEWAY_AUTH_NOT_CONFIGURED";
   return "AI_QUIZ_GENERATION_FAILED";
 }
 
@@ -44,9 +59,8 @@ export async function POST(request: Request) {
       return jsonError("INVALID_JSON", 400);
     }
 
-    const parsed = requestSchema.safeParse(rawBody);
-    if (!parsed.success) return jsonError("INVALID_REQUEST", 400);
-    const body = parsed.data;
+    const body = parseRequest(rawBody);
+    if (!body) return jsonError("INVALID_REQUEST", 400);
     generationId = body.requestId;
 
     const { data: existingAssessment } = await admin
@@ -137,6 +151,7 @@ export async function POST(request: Request) {
     if (error instanceof AiContextError) return jsonError(error.message, error.status);
     if (error instanceof AiContractValidationError) return jsonError("AI_OUTPUT_VALIDATION_FAILED", 422);
     if (error instanceof Error && error.message === "AI_GATEWAY_MODEL_NOT_CONFIGURED") return jsonError("AI_GATEWAY_NOT_CONFIGURED", 503);
+    if (error instanceof Error && error.message === "AI_GATEWAY_AUTH_NOT_CONFIGURED") return jsonError("AI_GATEWAY_AUTH_NOT_CONFIGURED", 503);
     console.error("Quiz generation failed", error instanceof Error ? error.message : "unknown");
     return jsonError("AI_QUIZ_GENERATION_FAILED", 500);
   }
