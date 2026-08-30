@@ -30,8 +30,10 @@ type GatewayResponse = {
     completion_tokens?: number;
     total_tokens?: number;
   };
-  error?: { message?: string; code?: string };
+  error?: { message?: string; code?: string; type?: string };
 };
+
+const FREE_FALLBACK_MODEL = "inclusionai/ling-3.0-tiny-free";
 
 const quizJsonSchema = {
   type: "object",
@@ -151,7 +153,12 @@ function parseStructuredContent<T>(payload: GatewayResponse): T {
   }
 }
 
-async function generateStructured<T>(args: {
+function safeGatewayErrorCode(payload: GatewayResponse, status: number) {
+  const raw = payload.error?.code || payload.error?.type || `HTTP_${status}`;
+  return raw.replace(/[^A-Za-z0-9_.-]/g, "_").slice(0, 80);
+}
+
+async function requestStructured<T>(args: {
   userId: string;
   feature: "quiz" | "tutor";
   schemaName: string;
@@ -160,8 +167,8 @@ async function generateStructured<T>(args: {
   system: string;
   prompt: string;
   maxTokens: number;
-}): Promise<GatewayGeneration<T>> {
-  const model = getGatewayModel();
+  model: string;
+}): Promise<{ response: Response; payload: GatewayResponse }> {
   const response = await fetch("https://ai-gateway.vercel.sh/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -169,7 +176,7 @@ async function generateStructured<T>(args: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model,
+      model: args.model,
       stream: false,
       max_tokens: args.maxTokens,
       messages: [
@@ -201,17 +208,45 @@ async function generateStructured<T>(args: {
   } catch {
     throw new Error("AI_GATEWAY_INVALID_RESPONSE");
   }
-  if (!response.ok) {
-    const safeCode = payload.error?.code?.replace(/[^A-Za-z0-9_.-]/g, "_").slice(0, 80) || `HTTP_${response.status}`;
-    throw new Error(`AI_GATEWAY_REQUEST_FAILED:${safeCode}`);
+  return { response, payload };
+}
+
+async function generateStructured<T>(args: {
+  userId: string;
+  feature: "quiz" | "tutor";
+  schemaName: string;
+  schemaDescription: string;
+  schema: object;
+  system: string;
+  prompt: string;
+  maxTokens: number;
+}): Promise<GatewayGeneration<T>> {
+  const preferredModel = getGatewayModel();
+  const candidates = preferredModel === FREE_FALLBACK_MODEL
+    ? [preferredModel]
+    : [preferredModel, FREE_FALLBACK_MODEL];
+
+  for (let index = 0; index < candidates.length; index += 1) {
+    const model = candidates[index];
+    const { response, payload } = await requestStructured<T>({ ...args, model });
+
+    if (!response.ok) {
+      if (response.status === 403 && index === 0 && candidates.length > 1) {
+        console.warn("AI Gateway denied preferred model; retrying with zero-cost fallback model");
+        continue;
+      }
+      throw new Error(`AI_GATEWAY_REQUEST_FAILED:${safeGatewayErrorCode(payload, response.status)}`);
+    }
+
+    return {
+      value: parseStructuredContent<T>(payload),
+      usage: normalizeUsage(payload.usage),
+      responseId: payload.id ?? null,
+      responseModel: payload.model ?? model,
+    };
   }
 
-  return {
-    value: parseStructuredContent<T>(payload),
-    usage: normalizeUsage(payload.usage),
-    responseId: payload.id ?? null,
-    responseModel: payload.model ?? null,
-  };
+  throw new Error("AI_GATEWAY_REQUEST_FAILED:NO_MODEL_AVAILABLE");
 }
 
 const groundingSystem = `You are the grounded AI component of StatSkill AI.
