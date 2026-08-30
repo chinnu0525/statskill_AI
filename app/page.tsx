@@ -2,10 +2,12 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { localeLabels, messages, type Locale } from "../src/i18n/messages";
+import { assessmentMessages } from "../src/i18n/assessment-messages";
 import { getCurrentUser, signIn, signOut, signUp } from "../src/services/auth";
 import { loadDashboardData, updatePreferredLocale, type DashboardData } from "../src/services/dashboard";
 import { isSupabaseConfigured } from "../src/lib/supabase/client";
 import { DocumentUpload } from "./components/DocumentUpload";
+import { AssessmentPanel } from "./components/AssessmentPanel";
 
 const locales: Locale[] = ["en", "hi", "te"];
 const storageKey = "statskill-locale";
@@ -21,7 +23,7 @@ export default function Home() {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [loadingDashboard, setLoadingDashboard] = useState(false);
 
-  const copy = useMemo(() => messages[locale], [locale]);
+  const copy = useMemo(() => ({ ...messages[locale], ...assessmentMessages[locale] }), [locale]);
   const configured = isSupabaseConfigured();
 
   useEffect(() => {
@@ -270,6 +272,10 @@ export default function Home() {
 
             <div id="materials" className="materialsSection">
               <DocumentUpload copy={copy} />
+            </div>
+
+            <div id="assessments" className="assessmentSection">
+              <AssessmentPanel locale={locale} copy={copy} onCompleted={() => void refreshDashboard(locale)} />
             </div>
           </main>
         </div>
