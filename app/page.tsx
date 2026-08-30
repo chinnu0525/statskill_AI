@@ -5,6 +5,7 @@ import { localeLabels, messages, type Locale } from "../src/i18n/messages";
 import { getCurrentUser, signIn, signOut, signUp } from "../src/services/auth";
 import { loadDashboardData, updatePreferredLocale, type DashboardData } from "../src/services/dashboard";
 import { isSupabaseConfigured } from "../src/lib/supabase/client";
+import { DocumentUpload } from "./components/DocumentUpload";
 
 const locales: Locale[] = ["en", "hi", "te"];
 const storageKey = "statskill-locale";
@@ -190,6 +191,7 @@ export default function Home() {
               <a className="active" href="#dashboard">{copy.dashboard}</a>
               <a href="#skills">{copy.skills}</a>
               <a href="#learning">{copy.learning}</a>
+              <a href="#materials">{copy.learningMaterials}</a>
               <a href="#assessments">{copy.assessments}</a>
               <a href="#assistant">{copy.assistant}</a>
             </nav>
@@ -265,6 +267,10 @@ export default function Home() {
                 </div>
               )) : <div className="muted emptyState">{copy.noCourses}</div>}
             </section>
+
+            <div id="materials" className="materialsSection">
+              <DocumentUpload copy={copy} />
+            </div>
           </main>
         </div>
       ) : null}
