@@ -1,26 +1,34 @@
 # StatSkill AI — Grounded AI Contract
 
 ## Principle
-The LLM is an untrusted generation component. Authorization, source retrieval, validation, persistence, scoring, and competency updates remain deterministic application/database responsibilities.
+The local LLM is an untrusted generation component. Authorization, source retrieval, validation, persistence, scoring, and competency updates remain deterministic application/database responsibilities.
 
 ## Grounding flow
-1. Authenticate the user.
-2. Resolve only documents owned by that user.
-3. Retrieve owned source chunks.
-4. Pass source chunks as untrusted reference data to the AI provider.
-5. Require structured output containing source chunk IDs.
-6. Validate every returned source ID against the supplied context.
-7. Persist generated assessments through the service-role-only transactional RPC.
-8. Never return correct answer keys to the browser.
+1. Authenticate the learner with Supabase Auth.
+2. Resolve only documents owned by that learner through RLS.
+3. Retrieve owned source chunks in the browser.
+4. Pass source chunks as untrusted reference data to the browser-local LLM.
+5. Require structured output containing short source references.
+6. Map those references back to real chunk UUIDs and validate every citation against the supplied context.
+7. Persist generated assessments through the authenticated owner-scoped transactional RPC.
+8. Never return correct answer keys through normal question reads.
 9. Score attempts with the JWT-protected assessment scorer.
 
+## Local inference
+- Runtime: pinned `@mlc-ai/web-llm` package.
+- Model: `Qwen2.5-0.5B-Instruct-q4f16_1-MLC`.
+- Execution: learner browser via WebGPU.
+- First use downloads model artifacts and caches them locally in the browser.
+- No AI API key, payment card, Vercel AI Gateway credit, or server-side inference credential is required.
+- Learning-material excerpts are not sent to an AI inference provider. Supabase is still used for authenticated storage/retrieval and persistence.
+
 ## Prompt-injection rule
-Uploaded learning material is data, not instructions. Provider prompts must explicitly instruct the model to ignore commands, role changes, secrets requests, or tool instructions contained inside uploaded content.
+Uploaded learning material is data, not instructions. Prompts explicitly instruct the local model to ignore commands, role changes, secrets requests, or tool instructions contained inside uploaded content.
 
 ## MCQ contract
-- 1–20 questions.
+- Domain contract supports 1–20 questions; the local UI currently offers 3, 5, or 10 to match the small on-device model's reliability envelope.
 - English, Hindi, or Telugu.
-- Exactly four options with IDs A/B/C/D.
+- Exactly four options with IDs A/B/C/D after normalization.
 - Unique non-empty option labels.
 - Correct option must be one of A/B/C/D.
 - Grounded explanation required.
@@ -34,26 +42,30 @@ The tutor returns `supported`, `answer`, and `sourceChunkIds`.
 - If `supported = true`, at least one supplied source chunk must be cited.
 - If `supported = false`, citations must be empty and the answer must clearly abstain rather than fabricate evidence.
 - The model cannot cite chunks it did not receive.
+- The raw learner question is not persisted in the AI ledger; only its SHA-256 hash and context chunk IDs are recorded.
 
 ## Persistence
-`persist_generated_assessment` is a `SECURITY DEFINER` Postgres function executable only by `service_role`. It validates:
+`persist_my_generated_assessment` is an authenticated owner-scoped Postgres RPC. It derives the current learner from `auth.uid()` and validates:
 - document ownership and `CHUNKED` status;
 - locale and question count;
 - four distinct A/B/C/D options;
 - correct-answer validity;
 - explanation/topic/difficulty;
 - unique source chunk references;
-- every cited chunk belongs to the selected document.
+- every cited chunk belongs to the selected document;
+- an owned `PENDING` quiz generation exists for the same document.
 
-The function inserts the assessment, questions, and locked answer keys in one transaction.
+The function inserts the assessment, questions, and locked answer keys in one transaction and marks the generation complete.
 
-## Provider adapter
-The domain depends only on `AiProvider` from `src/domain/ai.ts`. A Vercel AI Gateway adapter can implement that interface using current AI SDK structured output APIs without changing domain rules.
+## Provider abstraction
+The domain continues to depend only on the contracts in `src/domain/ai.ts`. `src/services/local-ai.ts` is the current implementation. A future approved provider can be added without changing validation, persistence, or scoring rules.
 
-## Deployment gate
-Vercel deployment is allowed only after:
+## Engineering gates
+For normal changes:
 1. Production dependency audit passes.
 2. TypeScript passes.
 3. Production build passes.
-4. Supabase security advisor is clean.
-5. CodeRabbit completes a real review and all blocking issues are resolved.
+4. Relevant Supabase security checks remain clean when database/security policy changes are involved.
+5. The deployed commit matches the validated Git head.
+
+CodeRabbit is used when a change is security-sensitive, unusually risky, difficult to debug, or when an independent code-review pass would materially improve confidence; it is not required for every routine change.
