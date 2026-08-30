@@ -48,6 +48,7 @@ export type TutorInput = {
 };
 
 export type TutorAnswer = {
+  supported: boolean;
   answer: string;
   sourceChunkIds: string[];
 };
@@ -158,8 +159,19 @@ export function validateTutorAnswer(answer: TutorAnswer, input: TutorInput): AiV
   const allowedChunkIds = new Set(input.chunks.map((chunk) => chunk.id));
   if (!input.question.trim()) issues.push({ code: "QUESTION_REQUIRED", path: "question", message: "Tutor question is required." });
   if (!answer.answer.trim()) issues.push({ code: "ANSWER_REQUIRED", path: "answer", message: "Tutor answer is required." });
-  if (!answer.sourceChunkIds.length) issues.push({ code: "SOURCE_REQUIRED", path: "sourceChunkIds", message: "Tutor answers must cite at least one supplied source chunk." });
-  for (const sourceId of new Set(answer.sourceChunkIds)) {
+
+  if (answer.supported && !answer.sourceChunkIds.length) {
+    issues.push({ code: "SOURCE_REQUIRED", path: "sourceChunkIds", message: "Evidence-backed tutor answers must cite at least one supplied source chunk." });
+  }
+  if (!answer.supported && answer.sourceChunkIds.length) {
+    issues.push({ code: "UNSUPPORTED_WITH_CITATIONS", path: "sourceChunkIds", message: "An abstaining tutor answer must not invent source citations." });
+  }
+
+  const uniqueSources = new Set(answer.sourceChunkIds);
+  if (uniqueSources.size !== answer.sourceChunkIds.length) {
+    issues.push({ code: "DUPLICATE_SOURCE", path: "sourceChunkIds", message: "Tutor source references must be unique." });
+  }
+  for (const sourceId of uniqueSources) {
     if (!allowedChunkIds.has(sourceId)) issues.push({ code: "UNTRUSTED_SOURCE", path: "sourceChunkIds", message: "Tutor answers may cite only supplied grounding chunks." });
   }
   return issues;
@@ -167,6 +179,11 @@ export function validateTutorAnswer(answer: TutorAnswer, input: TutorInput): AiV
 
 export function assertValidGeneratedQuiz(draft: GeneratedQuizDraft, input: QuizGenerationInput) {
   const issues = [...validateQuizGenerationInput(input), ...validateGeneratedQuiz(draft, input)];
+  if (issues.length) throw new AiContractValidationError(issues);
+}
+
+export function assertValidTutorAnswer(answer: TutorAnswer, input: TutorInput) {
+  const issues = validateTutorAnswer(answer, input);
   if (issues.length) throw new AiContractValidationError(issues);
 }
 
