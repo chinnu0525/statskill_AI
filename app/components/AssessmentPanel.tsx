@@ -10,10 +10,12 @@ import {
   type AssessmentSummary,
 } from "../../src/services/assessments";
 
-export function AssessmentPanel({ locale, copy, onCompleted }: {
+export function AssessmentPanel({ locale, copy, onCompleted, refreshKey = 0, preferredAssessmentId = "" }: {
   locale: Locale;
   copy: Record<string, string>;
   onCompleted: () => void;
+  refreshKey?: number;
+  preferredAssessmentId?: string;
 }) {
   const [assessments, setAssessments] = useState<AssessmentSummary[]>([]);
   const [selectedId, setSelectedId] = useState("");
@@ -30,10 +32,16 @@ export function AssessmentPanel({ locale, copy, onCompleted }: {
     listAssessments(locale)
       .then((items) => {
         setAssessments(items);
-        setSelectedId(items[0]?.id ?? "");
+        const preferred = preferredAssessmentId && items.some((item) => item.id === preferredAssessmentId)
+          ? preferredAssessmentId
+          : items[0]?.id ?? "";
+        setSelectedId(preferred);
       })
-      .catch(() => setAssessments([]));
-  }, [locale]);
+      .catch(() => {
+        setAssessments([]);
+        setSelectedId("");
+      });
+  }, [locale, refreshKey, preferredAssessmentId]);
 
   async function startAssessment() {
     if (!selectedId) return;

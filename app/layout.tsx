@@ -3,6 +3,7 @@ import "./globals.css";
 import "./assessment.css";
 import "./admin.css";
 import "./retrieval.css";
+import "./ai.css";
 
 export const metadata: Metadata = {
   title: "StatSkill AI",

@@ -5,6 +5,7 @@ import { localeLabels, messages, type Locale } from "../src/i18n/messages";
 import { assessmentMessages } from "../src/i18n/assessment-messages";
 import { adminMessages } from "../src/i18n/admin-messages";
 import { retrievalMessages } from "../src/i18n/retrieval-messages";
+import { aiMessages } from "../src/i18n/ai-messages";
 import { getCurrentUser, signIn, signOut, signUp } from "../src/services/auth";
 import { loadDashboardData, updatePreferredLocale, type DashboardData } from "../src/services/dashboard";
 import { isSupabaseConfigured } from "../src/lib/supabase/client";
@@ -12,6 +13,7 @@ import { DocumentUpload } from "./components/DocumentUpload";
 import { AssessmentPanel } from "./components/AssessmentPanel";
 import { AdminOverview } from "./components/AdminOverview";
 import { SourceSearch } from "./components/SourceSearch";
+import { AiWorkspace } from "./components/AiWorkspace";
 
 const locales: Locale[] = ["en", "hi", "te"];
 const storageKey = "statskill-locale";
@@ -26,12 +28,16 @@ export default function Home() {
   const [authMessage, setAuthMessage] = useState("");
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [loadingDashboard, setLoadingDashboard] = useState(false);
+  const [assessmentRefreshKey, setAssessmentRefreshKey] = useState(0);
+  const [generatedAssessmentId, setGeneratedAssessmentId] = useState("");
+  const [materialsRefreshKey, setMaterialsRefreshKey] = useState(0);
 
   const copy = useMemo(() => ({
     ...messages[locale],
     ...assessmentMessages[locale],
     ...adminMessages[locale],
     ...retrievalMessages[locale],
+    ...aiMessages[locale],
   }), [locale]);
   const configured = isSupabaseConfigured();
   const isAdmin = dashboard?.role === "ADMIN" || dashboard?.role === "SUPER_ADMIN";
@@ -82,6 +88,7 @@ export default function Home() {
   function chooseLocale(nextLocale: Locale) {
     setLocale(nextLocale);
     setHasPreference(true);
+    setGeneratedAssessmentId("");
     window.localStorage.setItem(storageKey, nextLocale);
     document.documentElement.lang = nextLocale;
     if (authenticated) {
@@ -122,6 +129,12 @@ export default function Home() {
     await signOut();
     setAuthenticated(false);
     setDashboard(null);
+    setGeneratedAssessmentId("");
+  }
+
+  function handleQuizGenerated(assessmentId: string) {
+    setGeneratedAssessmentId(assessmentId);
+    setAssessmentRefreshKey((current) => current + 1);
   }
 
   const gaps = dashboard?.gaps ?? [];
@@ -205,9 +218,9 @@ export default function Home() {
               <a href="#learning">{copy.learning}</a>
               <a href="#materials">{copy.learningMaterials}</a>
               <a href="#sources">{copy.sourceSearch}</a>
+              <a href="#assistant">{copy.assistant}</a>
               <a href="#assessments">{copy.assessments}</a>
               {isAdmin ? <a href="#admin">{copy.adminAnalytics}</a> : null}
-              <a href="#assistant">{copy.assistant}</a>
             </nav>
             <div className="language">
               {copy.language}
@@ -283,15 +296,30 @@ export default function Home() {
             </section>
 
             <div id="materials" className="materialsSection">
-              <DocumentUpload copy={copy} />
+              <DocumentUpload copy={copy} onDocumentProcessed={() => setMaterialsRefreshKey((current) => current + 1)} />
             </div>
 
             <div id="sources" className="sourceSearchSection">
               <SourceSearch copy={copy} />
             </div>
 
+            <div id="assistant">
+              <AiWorkspace
+                locale={locale}
+                copy={copy}
+                onQuizGenerated={handleQuizGenerated}
+                materialsRefreshKey={materialsRefreshKey}
+              />
+            </div>
+
             <div id="assessments" className="assessmentSection">
-              <AssessmentPanel locale={locale} copy={copy} onCompleted={() => void refreshDashboard(locale)} />
+              <AssessmentPanel
+                locale={locale}
+                copy={copy}
+                onCompleted={() => void refreshDashboard(locale)}
+                refreshKey={assessmentRefreshKey}
+                preferredAssessmentId={generatedAssessmentId}
+              />
             </div>
 
             {isAdmin ? (
