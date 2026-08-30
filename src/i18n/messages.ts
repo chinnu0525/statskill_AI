@@ -47,7 +47,17 @@ export const messages: Record<Locale, Record<string, string>> = {
     noCourses: "No enrolled learning modules yet.",
     configurationNeeded: "Supabase connection settings are required to use sign-in and live data.",
     checkEmail: "Check your email to confirm your account, then sign in.",
-    authError: "We could not complete that request. Please check your details and try again."
+    authError: "We could not complete that request. Please check your details and try again.",
+    learningMaterials: "Learning materials",
+    learningMaterialsHint: "Upload approved material for future grounded assessments and AI assistance.",
+    chooseFile: "Choose file",
+    upload: "Upload",
+    uploading: "Uploading…",
+    uploadComplete: "Upload complete.",
+    uploadFailed: "Upload failed. Please try again.",
+    fileTooLarge: "The file is larger than 25 MB.",
+    unsupportedFile: "Use a PDF, TXT, DOC, DOCX, PPT, or PPTX file.",
+    noMaterials: "No learning materials uploaded yet."
   },
   hi: {
     dashboard: "डैशबोर्ड",
@@ -89,7 +99,17 @@ export const messages: Record<Locale, Record<string, string>> = {
     noCourses: "अभी कोई नामांकित शिक्षण मॉड्यूल नहीं है।",
     configurationNeeded: "साइन इन और लाइव डेटा के लिए Supabase कनेक्शन सेटिंग आवश्यक हैं।",
     checkEmail: "अपने खाते की पुष्टि के लिए ईमेल देखें, फिर साइन इन करें।",
-    authError: "अनुरोध पूरा नहीं हो सका। कृपया विवरण जाँचकर फिर प्रयास करें।"
+    authError: "अनुरोध पूरा नहीं हो सका। कृपया विवरण जाँचकर फिर प्रयास करें।",
+    learningMaterials: "शिक्षण सामग्री",
+    learningMaterialsHint: "भविष्य के स्रोत-आधारित मूल्यांकन और AI सहायता के लिए स्वीकृत सामग्री अपलोड करें।",
+    chooseFile: "फ़ाइल चुनें",
+    upload: "अपलोड करें",
+    uploading: "अपलोड हो रहा है…",
+    uploadComplete: "अपलोड पूरा हुआ।",
+    uploadFailed: "अपलोड विफल रहा। कृपया फिर प्रयास करें।",
+    fileTooLarge: "फ़ाइल 25 MB से बड़ी है।",
+    unsupportedFile: "PDF, TXT, DOC, DOCX, PPT या PPTX फ़ाइल का उपयोग करें।",
+    noMaterials: "अभी कोई शिक्षण सामग्री अपलोड नहीं की गई है।"
   },
   te: {
     dashboard: "డాష్‌బోర్డ్",
@@ -131,7 +151,17 @@ export const messages: Record<Locale, Record<string, string>> = {
     noCourses: "ఇంకా అభ్యాస మాడ్యూల్‌లలో నమోదు కాలేదు.",
     configurationNeeded: "సైన్ ఇన్ మరియు ప్రత్యక్ష డేటా కోసం Supabase కనెక్షన్ సెట్టింగ్‌లు అవసరం.",
     checkEmail: "మీ ఖాతాను నిర్ధారించడానికి ఇమెయిల్ చూడండి, తరువాత సైన్ ఇన్ చేయండి.",
-    authError: "అభ్యర్థనను పూర్తి చేయలేకపోయాము. వివరాలు తనిఖీ చేసి మళ్లీ ప్రయత్నించండి."
+    authError: "అభ్యర్థనను పూర్తి చేయలేకపోయాము. వివరాలు తనిఖీ చేసి మళ్లీ ప్రయత్నించండి.",
+    learningMaterials: "అభ్యాస సామగ్రి",
+    learningMaterialsHint: "భవిష్యత్ మూలాధారిత మూల్యాంకనాలు మరియు AI సహాయం కోసం ఆమోదిత సామగ్రిని అప్‌లోడ్ చేయండి.",
+    chooseFile: "ఫైల్ ఎంచుకోండి",
+    upload: "అప్‌లోడ్",
+    uploading: "అప్‌లోడ్ అవుతోంది…",
+    uploadComplete: "అప్‌లోడ్ పూర్తైంది.",
+    uploadFailed: "అప్‌లోడ్ విఫలమైంది. మళ్లీ ప్రయత్నించండి.",
+    fileTooLarge: "ఫైల్ 25 MB కంటే పెద్దది.",
+    unsupportedFile: "PDF, TXT, DOC, DOCX, PPT లేదా PPTX ఫైల్ ఉపయోగించండి.",
+    noMaterials: "ఇంకా అభ్యాస సామగ్రి అప్‌లోడ్ చేయబడలేదు."
   }
 };
 
