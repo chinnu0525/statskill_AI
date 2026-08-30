@@ -27,14 +27,17 @@ export function AiWorkspace({
   const [documentId, setDocumentId] = useState("");
   const [questionCount, setQuestionCount] = useState(5);
   const [difficulty, setDifficulty] = useState<AiDifficulty>("MEDIUM");
+  const [quizRequestId, setQuizRequestId] = useState<string | null>(null);
   const [quizBusy, setQuizBusy] = useState(false);
   const [quizMessage, setQuizMessage] = useState("");
   const [question, setQuestion] = useState("");
+  const [tutorRequestId, setTutorRequestId] = useState<string | null>(null);
   const [tutorBusy, setTutorBusy] = useState(false);
   const [tutorMessage, setTutorMessage] = useState("");
   const [tutorResult, setTutorResult] = useState<TutorResult | null>(null);
 
   useEffect(() => {
+    setQuizRequestId(null);
     listQuizReadyDocuments()
       .then((items) => {
         setDocuments(items);
@@ -46,6 +49,11 @@ export function AiWorkspace({
       });
   }, [materialsRefreshKey]);
 
+  useEffect(() => {
+    setQuizRequestId(null);
+    setTutorRequestId(null);
+  }, [locale]);
+
   function aiErrorMessage(error: unknown, fallback: string) {
     if (error instanceof AiApiError && ["AI_GATEWAY_NOT_CONFIGURED", "AI_GATEWAY_AUTH_NOT_CONFIGURED"].includes(error.code)) {
       return copy.gatewayNotConfigured;
@@ -55,10 +63,13 @@ export function AiWorkspace({
 
   async function handleGenerateQuiz() {
     if (!documentId || quizBusy) return;
+    const requestId = quizRequestId ?? crypto.randomUUID();
+    if (!quizRequestId) setQuizRequestId(requestId);
     setQuizBusy(true);
     setQuizMessage("");
     try {
-      const result = await generateDocumentQuiz({ documentId, locale, questionCount, difficulty });
+      const result = await generateDocumentQuiz({ documentId, locale, questionCount, difficulty, requestId });
+      setQuizRequestId(null);
       setQuizMessage(`${copy.quizReady}. ${copy.quizReadyHint}`);
       onQuizGenerated(result.assessmentId);
     } catch (error) {
@@ -72,11 +83,14 @@ export function AiWorkspace({
     event.preventDefault();
     const trimmed = question.trim();
     if (!trimmed || tutorBusy) return;
+    const requestId = tutorRequestId ?? crypto.randomUUID();
+    if (!tutorRequestId) setTutorRequestId(requestId);
     setTutorBusy(true);
     setTutorMessage("");
     setTutorResult(null);
     try {
-      const result = await askGroundedTutor({ locale, question: trimmed });
+      const result = await askGroundedTutor({ locale, question: trimmed, requestId });
+      setTutorRequestId(null);
       setTutorResult(result);
     } catch (error) {
       setTutorMessage(aiErrorMessage(error, copy.tutorFailed));
@@ -104,7 +118,14 @@ export function AiWorkspace({
 
           <label className="aiField">
             <span>{copy.chooseMaterial}</span>
-            <select value={documentId} onChange={(event) => setDocumentId(event.target.value)} disabled={!documents.length || quizBusy}>
+            <select
+              value={documentId}
+              onChange={(event) => {
+                setDocumentId(event.target.value);
+                setQuizRequestId(null);
+              }}
+              disabled={!documents.length || quizBusy}
+            >
               {documents.length ? documents.map((document) => (
                 <option key={document.id} value={document.id}>{document.title}</option>
               )) : <option value="">{copy.noReadyMaterials}</option>}
@@ -114,13 +135,27 @@ export function AiWorkspace({
           <div className="aiInlineFields">
             <label className="aiField">
               <span>{copy.questionCount}</span>
-              <select value={questionCount} onChange={(event) => setQuestionCount(Number(event.target.value))} disabled={quizBusy}>
+              <select
+                value={questionCount}
+                onChange={(event) => {
+                  setQuestionCount(Number(event.target.value));
+                  setQuizRequestId(null);
+                }}
+                disabled={quizBusy}
+              >
                 {[5, 10, 15, 20].map((count) => <option key={count} value={count}>{count}</option>)}
               </select>
             </label>
             <label className="aiField">
               <span>{copy.difficulty}</span>
-              <select value={difficulty} onChange={(event) => setDifficulty(event.target.value as AiDifficulty)} disabled={quizBusy}>
+              <select
+                value={difficulty}
+                onChange={(event) => {
+                  setDifficulty(event.target.value as AiDifficulty);
+                  setQuizRequestId(null);
+                }}
+                disabled={quizBusy}
+              >
                 <option value="EASY">{copy.easy}</option>
                 <option value="MEDIUM">{copy.medium}</option>
                 <option value="HARD">{copy.hard}</option>
@@ -143,7 +178,10 @@ export function AiWorkspace({
           <form className="aiTutorForm" onSubmit={handleTutor}>
             <textarea
               value={question}
-              onChange={(event) => setQuestion(event.target.value)}
+              onChange={(event) => {
+                setQuestion(event.target.value);
+                setTutorRequestId(null);
+              }}
               placeholder={copy.tutorPlaceholder}
               maxLength={1200}
               rows={5}
