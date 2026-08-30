@@ -202,11 +202,11 @@ async function requestStructured<T>(args: {
     signal: AbortSignal.timeout(45_000),
   });
 
-  let payload: GatewayResponse;
+  let payload: GatewayResponse = {};
   try {
     payload = await response.json() as GatewayResponse;
   } catch {
-    throw new Error("AI_GATEWAY_INVALID_RESPONSE");
+    if (response.ok) throw new Error("AI_GATEWAY_INVALID_RESPONSE");
   }
   return { response, payload };
 }
