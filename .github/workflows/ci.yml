@@ -32,6 +32,9 @@ jobs:
       - name: Install dependencies
         if: steps.app.outputs.present == 'true'
         run: npm install
+      - name: Production dependency audit
+        if: steps.app.outputs.present == 'true'
+        run: npm run audit:prod
       - name: Typecheck
         if: steps.app.outputs.present == 'true'
         run: npx tsc --noEmit
