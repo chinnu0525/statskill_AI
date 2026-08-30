@@ -9,7 +9,6 @@ import {
 } from "../domain/ai";
 
 export const LOCAL_AI_MODEL = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC";
-const WEBLLM_CDN_URL = "https://esm.run/@mlc-ai/web-llm@0.2.84";
 
 export type LocalAiProgress = {
   stage: "checking" | "loading" | "ready" | "generating";
@@ -101,10 +100,10 @@ function webGpuAvailable() {
 }
 
 async function importWebLlm(): Promise<WebLlmModule> {
-  // Keep the heavy runtime out of the Next.js bundle. The browser performs this
-  // standards-based module import only when the learner first uses local AI.
-  const moduleUrl = WEBLLM_CDN_URL;
-  return import(/* webpackIgnore: true */ moduleUrl) as Promise<WebLlmModule>;
+  // WebLLM is pinned in package.json and code-split so the heavy runtime is
+  // downloaded only when a learner first uses local AI. No third-party runtime
+  // JavaScript is imported directly at execution time.
+  return import("@mlc-ai/web-llm") as unknown as Promise<WebLlmModule>;
 }
 
 async function getEngine(onProgress?: (progress: LocalAiProgress) => void): Promise<LocalEngine> {
