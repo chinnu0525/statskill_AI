@@ -1,6 +1,17 @@
 import type { Locale } from "../i18n/messages";
 import { createClient } from "../lib/supabase/client";
 
+export type SignupProfile = {
+  fullName: string;
+  designation?: string;
+  department?: string;
+  cadre?: string;
+  assignment?: string;
+  qualification?: string;
+  experienceYears?: number | null;
+  priorTraining?: string;
+};
+
 function getEmailRedirectUrl() {
   if (typeof window !== "undefined") {
     return `${window.location.origin}/`;
@@ -14,7 +25,7 @@ export async function signIn(email: string, password: string) {
   return supabase.auth.signInWithPassword({ email, password });
 }
 
-export async function signUp(email: string, password: string, fullName: string, locale: Locale) {
+export async function signUp(email: string, password: string, profile: SignupProfile, locale: Locale) {
   const supabase = createClient();
   return supabase.auth.signUp({
     email,
@@ -22,8 +33,15 @@ export async function signUp(email: string, password: string, fullName: string, 
     options: {
       emailRedirectTo: getEmailRedirectUrl(),
       data: {
-        full_name: fullName,
+        full_name: profile.fullName,
         locale,
+        designation: profile.designation || null,
+        department: profile.department || null,
+        cadre: profile.cadre || null,
+        assignment: profile.assignment || null,
+        qualification: profile.qualification || null,
+        experience_years: profile.experienceYears ?? null,
+        prior_training: profile.priorTraining || null,
       },
     },
   });
