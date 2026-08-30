@@ -46,11 +46,14 @@ function safeErrorCode(error: unknown) {
 
 export async function POST(request: Request) {
   let generationId: string | null = null;
+  let authenticatedUserId: string | null = null;
+  let generationStarted = false;
   let admin: Awaited<ReturnType<typeof authenticateBearerRequest>>["admin"] | null = null;
 
   try {
     const auth = await authenticateBearerRequest(request);
     admin = auth.admin;
+    authenticatedUserId = auth.user.id;
 
     let rawBody: unknown;
     try {
@@ -103,6 +106,7 @@ export async function POST(request: Request) {
         contextChunkIds: chunks.map((chunk) => chunk.id),
       },
     });
+    generationStarted = true;
 
     const provider = new VercelAiGatewayProvider(auth.user.id);
     const generation = await provider.generateQuizWithMetadata({
@@ -125,7 +129,7 @@ export async function POST(request: Request) {
     if (persistenceError || !assessmentId) throw persistenceError ?? new Error("ASSESSMENT_PERSISTENCE_FAILED");
 
     try {
-      await completeAiGeneration(admin, body.requestId, {
+      await completeAiGeneration(admin, body.requestId, auth.user.id, {
         usage: generation.usage,
         resultMetadata: {
           assessmentId,
@@ -146,7 +150,9 @@ export async function POST(request: Request) {
       reused: false,
     });
   } catch (error) {
-    if (admin && generationId) await failAiGeneration(admin, generationId, safeErrorCode(error));
+    if (admin && generationId && authenticatedUserId && generationStarted) {
+      await failAiGeneration(admin, generationId, authenticatedUserId, safeErrorCode(error));
+    }
     if (error instanceof ServerAuthError) return jsonError(error.message, error.status);
     if (error instanceof AiContextError) return jsonError(error.message, error.status);
     if (error instanceof AiContractValidationError) return jsonError("AI_OUTPUT_VALIDATION_FAILED", 422);
