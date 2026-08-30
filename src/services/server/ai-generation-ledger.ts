@@ -34,6 +34,7 @@ export async function startAiGeneration(
 export async function completeAiGeneration(
   admin: SupabaseClient,
   id: string,
+  userId: string,
   input: {
     usage: NormalizedAiUsage;
     resultMetadata: Record<string, unknown>;
@@ -48,11 +49,12 @@ export async function completeAiGeneration(
       error_code: null,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("user_id", userId);
   if (error) throw error;
 }
 
-export async function failAiGeneration(admin: SupabaseClient, id: string, errorCode: string) {
+export async function failAiGeneration(admin: SupabaseClient, id: string, userId: string, errorCode: string) {
   const { error } = await admin
     .from("ai_generations")
     .update({
@@ -60,6 +62,7 @@ export async function failAiGeneration(admin: SupabaseClient, id: string, errorC
       error_code: errorCode.slice(0, 120),
       updated_at: new Date().toISOString(),
     })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("user_id", userId);
   if (error) console.error("AI generation ledger error update failed", error.message);
 }
