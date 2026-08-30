@@ -1,0 +1,14 @@
+create index if not exists idx_ai_generations_source_document_id on public.ai_generations(source_document_id);
+create index if not exists idx_assessment_attempts_assessment_id on public.assessment_attempts(assessment_id);
+create index if not exists idx_assessment_attempts_user_id on public.assessment_attempts(user_id);
+create index if not exists idx_assessments_competency_id on public.assessments(competency_id);
+create index if not exists idx_audit_events_actor_id on public.audit_events(actor_id);
+create index if not exists idx_competencies_domain_id on public.competencies(domain_id);
+create index if not exists idx_courses_competency_id on public.courses(competency_id);
+create index if not exists idx_documents_owner_id on public.documents(owner_id);
+create index if not exists idx_learning_enrollments_course_id on public.learning_enrollments(course_id);
+create index if not exists idx_questions_assessment_id on public.questions(assessment_id);
+create index if not exists idx_recommendations_course_id on public.recommendations(course_id);
+create index if not exists idx_recommendations_user_id on public.recommendations(user_id);
+create index if not exists idx_skill_gaps_competency_id on public.skill_gaps(competency_id);
+create index if not exists idx_user_competencies_competency_id on public.user_competencies(competency_id);
