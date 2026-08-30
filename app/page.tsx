@@ -5,6 +5,7 @@ import { localeLabels, messages, type Locale } from "../src/i18n/messages";
 import { getCurrentUser, signIn, signOut, signUp } from "../src/services/auth";
 import { loadDashboardData, updatePreferredLocale, type DashboardData } from "../src/services/dashboard";
 import { isSupabaseConfigured } from "../src/lib/supabase/client";
+import { AssessmentPanel } from "./components/AssessmentPanel";
 
 const locales: Locale[] = ["en", "hi", "te"];
 const storageKey = "statskill-locale";
@@ -49,16 +50,13 @@ export default function Home() {
       })
       .finally(() => active && setCheckingAuth(false));
 
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [hydrated, configured]);
 
   async function refreshDashboard(targetLocale: Locale) {
     setLoadingDashboard(true);
     try {
-      const data = await loadDashboardData(targetLocale);
-      setDashboard(data);
+      setDashboard(await loadDashboardData(targetLocale));
     } catch {
       setDashboard(null);
     } finally {
@@ -97,7 +95,6 @@ export default function Home() {
         const { error } = await signIn(email, password);
         if (error) throw error;
       }
-
       setAuthenticated(true);
       await refreshDashboard(locale);
     } catch {
@@ -126,8 +123,7 @@ export default function Home() {
             <div className="languageOptions">
               {locales.map((item) => (
                 <button key={item} type="button" onClick={() => chooseLocale(item)}>
-                  <span>{localeLabels[item]}</span>
-                  <span aria-hidden="true">→</span>
+                  <span>{localeLabels[item]}</span><span aria-hidden="true">→</span>
                 </button>
               ))}
             </div>
@@ -142,41 +138,19 @@ export default function Home() {
             <p className="eyebrow">{copy.workspace}</p>
             <h1 id="auth-title">{copy.welcomeBack}</h1>
             <p className="muted">{copy.authHint}</p>
-
             {!configured ? <div className="notice">{copy.configurationNeeded}</div> : null}
-
             <form className="authForm" onSubmit={handleAuth}>
-              {authMode === "signup" ? (
-                <label>
-                  <span>{copy.fullName}</span>
-                  <input name="fullName" autoComplete="name" required />
-                </label>
-              ) : null}
-              <label>
-                <span>{copy.email}</span>
-                <input name="email" type="email" autoComplete="email" required />
-              </label>
-              <label>
-                <span>{copy.password}</span>
-                <input name="password" type="password" minLength={8} autoComplete={authMode === "signin" ? "current-password" : "new-password"} required />
-              </label>
-              <button className="primaryButton" type="submit" disabled={!configured}>
-                {authMode === "signin" ? copy.signIn : copy.createAccount}
-              </button>
+              {authMode === "signup" ? <label><span>{copy.fullName}</span><input name="fullName" autoComplete="name" required /></label> : null}
+              <label><span>{copy.email}</span><input name="email" type="email" autoComplete="email" required /></label>
+              <label><span>{copy.password}</span><input name="password" type="password" minLength={8} autoComplete={authMode === "signin" ? "current-password" : "new-password"} required /></label>
+              <button className="primaryButton" type="submit" disabled={!configured}>{authMode === "signin" ? copy.signIn : copy.createAccount}</button>
             </form>
-
             {authMessage ? <p className="authMessage" role="status">{authMessage}</p> : null}
-
             <button className="textButton" type="button" onClick={() => setAuthMode(authMode === "signin" ? "signup" : "signin")}>
               {authMode === "signin" ? `${copy.noAccount} ${copy.createAccount}` : `${copy.haveAccount} ${copy.signIn}`}
             </button>
-
             <div className="authLanguages" aria-label={copy.changeLanguage}>
-              {locales.map((item) => (
-                <button key={item} type="button" className={locale === item ? "selected" : ""} onClick={() => chooseLocale(item)}>
-                  {localeLabels[item]}
-                </button>
-              ))}
+              {locales.map((item) => <button key={item} type="button" className={locale === item ? "selected" : ""} onClick={() => chooseLocale(item)}>{localeLabels[item]}</button>)}
             </div>
           </section>
         </main>
@@ -196,11 +170,7 @@ export default function Home() {
             <div className="language">
               {copy.language}
               <div className="localeLinks" aria-label={copy.changeLanguage}>
-                {locales.map((item) => (
-                  <button key={item} type="button" className={item === locale ? "selected" : ""} onClick={() => chooseLocale(item)}>
-                    {localeLabels[item]}
-                  </button>
-                ))}
+                {locales.map((item) => <button key={item} type="button" className={item === locale ? "selected" : ""} onClick={() => chooseLocale(item)}>{localeLabels[item]}</button>)}
               </div>
               <button className="textButton sidebarSignOut" type="button" onClick={handleSignOut}>{copy.signOut}</button>
             </div>
@@ -208,63 +178,29 @@ export default function Home() {
 
           <main className="main" id="dashboard">
             <header className="top">
-              <div>
-                <p className="eyebrow">{copy.workspace}</p>
-                <h1 className="h1">{copy.goodMorning}{dashboard?.fullName ? `, ${dashboard.fullName}` : ""}</h1>
-              </div>
-              <label className="languageSelect">
-                <span className="srOnly">{copy.changeLanguage}</span>
-                <select value={locale} onChange={(event) => chooseLocale(event.target.value as Locale)}>
-                  {locales.map((item) => <option key={item} value={item}>{localeLabels[item]}</option>)}
-                </select>
-              </label>
+              <div><p className="eyebrow">{copy.workspace}</p><h1 className="h1">{copy.goodMorning}{dashboard?.fullName ? `, ${dashboard.fullName}` : ""}</h1></div>
+              <label className="languageSelect"><span className="srOnly">{copy.changeLanguage}</span><select value={locale} onChange={(event) => chooseLocale(event.target.value as Locale)}>{locales.map((item) => <option key={item} value={item}>{localeLabels[item]}</option>)}</select></label>
             </header>
 
             {loadingDashboard ? <div className="notice">{copy.loading}</div> : null}
 
             <section className="grid" aria-label={copy.competencyOverview}>
-              <article className="card">
-                <div className="label">{copy.competency}</div>
-                <div className="score">{dashboard?.competencyScore ?? 0}%</div>
-                <div className="muted">{copy.competencyChange}</div>
-              </article>
-
+              <article className="card"><div className="label">{copy.competency}</div><div className="score">{dashboard?.competencyScore ?? 0}%</div><div className="muted">{copy.competencyChange}</div></article>
               <article className="card" id="skills">
                 <div className="label">{copy.priority}</div>
-                {gaps.length ? gaps.map((gap) => (
-                  <div className="gap" key={gap.name}>
-                    <span>{gap.name}</span>
-                    <span className="priority">
-                      {gap.priority === "HIGH" ? copy.highPriority : gap.priority === "MEDIUM" ? copy.mediumPriority : copy.lowPriority}
-                    </span>
-                  </div>
-                )) : <div className="muted emptyState">{copy.noGaps}</div>}
+                {gaps.length ? gaps.map((gap) => <div className="gap" key={gap.name}><span>{gap.name}</span><span className="priority">{gap.priority === "HIGH" ? copy.highPriority : gap.priority === "MEDIUM" ? copy.mediumPriority : copy.lowPriority}</span></div>) : <div className="muted emptyState">{copy.noGaps}</div>}
               </article>
-
-              <article className="card">
-                <div className="label">{copy.recommended}</div>
-                <strong>{recommendedCourse?.title ?? copy.noCourses}</strong>
-                {recommendedCourse ? <>
-                  <div className="muted">{copy.continueHint}</div>
-                  <a className="action" href="#learning">{copy.continue} →</a>
-                </> : null}
-              </article>
+              <article className="card"><div className="label">{copy.recommended}</div><strong>{recommendedCourse?.title ?? copy.noCourses}</strong>{recommendedCourse ? <><div className="muted">{copy.continueHint}</div><a className="action" href="#learning">{copy.continue} →</a></> : null}</article>
             </section>
 
             <h2 className="section" id="learning">{copy.learningPath}</h2>
             <section className="card">
-              {courses.length ? courses.map((course) => (
-                <div className="course" key={course.id}>
-                  <div>
-                    <strong>{course.title}</strong>
-                    <div className="progress" aria-label={`${course.progress}% ${copy.complete}`}>
-                      <span style={{ width: `${course.progress}%` }} />
-                    </div>
-                  </div>
-                  <span className="muted">{course.progress}%</span>
-                </div>
-              )) : <div className="muted emptyState">{copy.noCourses}</div>}
+              {courses.length ? courses.map((course) => <div className="course" key={course.id}><div><strong>{course.title}</strong><div className="progress" aria-label={`${course.progress}% ${copy.complete}`}><span style={{ width: `${course.progress}%` }} /></div></div><span className="muted">{course.progress}%</span></div>) : <div className="muted emptyState">{copy.noCourses}</div>}
             </section>
+
+            <div id="assessments" className="assessmentSection">
+              <AssessmentPanel locale={locale} onCompleted={() => void refreshDashboard(locale)} />
+            </div>
           </main>
         </div>
       ) : null}
