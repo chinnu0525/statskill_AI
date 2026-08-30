@@ -22,6 +22,15 @@ function safeFilename(filename: string) {
   return filename.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "learning-material";
 }
 
+function mapDocument(document: { id: string; title: string; status: string; created_at: string }): LearningDocument {
+  return {
+    id: document.id,
+    title: document.title,
+    status: document.status,
+    createdAt: document.created_at,
+  };
+}
+
 export function validateLearningMaterial(file: File) {
   if (!allowedTypes.has(file.type)) return "UNSUPPORTED_TYPE" as const;
   if (file.size > maxFileSize) return "FILE_TOO_LARGE" as const;
@@ -59,12 +68,24 @@ export async function uploadLearningMaterial(file: File): Promise<LearningDocume
     throw insertError;
   }
 
-  return {
-    id: document.id,
-    title: document.title,
-    status: document.status,
-    createdAt: document.created_at,
-  };
+  return mapDocument(document);
+}
+
+export async function processLearningMaterial(documentId: string): Promise<LearningDocument> {
+  const supabase = createClient();
+  const { error: functionError } = await supabase.functions.invoke("ingest-document", {
+    body: { documentId },
+  });
+
+  const { data: document, error: readError } = await supabase
+    .from("documents")
+    .select("id,title,status,created_at")
+    .eq("id", documentId)
+    .single();
+
+  if (readError || !document) throw readError ?? functionError ?? new Error("DOCUMENT_NOT_FOUND");
+  if (functionError && !["CONVERSION_REQUIRED", "PROCESSING_FAILED"].includes(document.status)) throw functionError;
+  return mapDocument(document);
 }
 
 export async function listLearningMaterials(): Promise<LearningDocument[]> {
@@ -74,10 +95,5 @@ export async function listLearningMaterials(): Promise<LearningDocument[]> {
     .select("id,title,status,created_at")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []).map((item) => ({
-    id: item.id,
-    title: item.title,
-    status: item.status,
-    createdAt: item.created_at,
-  }));
+  return (data ?? []).map(mapDocument);
 }
