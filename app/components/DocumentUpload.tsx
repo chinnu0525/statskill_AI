@@ -3,6 +3,7 @@
 import { ChangeEvent, useEffect, useState } from "react";
 import {
   listLearningMaterials,
+  processLearningMaterial,
   uploadLearningMaterial,
   validateLearningMaterial,
   type LearningDocument,
@@ -28,6 +29,10 @@ export function DocumentUpload({ copy }: { copy: Record<string, string> }) {
     if (validation === "UNSUPPORTED_TYPE") setStatus(copy.unsupportedFile);
   }
 
+  function replaceDocument(next: LearningDocument) {
+    setDocuments((current) => current.map((item) => item.id === next.id ? next : item));
+  }
+
   async function upload() {
     if (!selectedFile || validateLearningMaterial(selectedFile)) return;
     setUploading(true);
@@ -36,11 +41,15 @@ export function DocumentUpload({ copy }: { copy: Record<string, string> }) {
       const document = await uploadLearningMaterial(selectedFile);
       setDocuments((current) => [document, ...current]);
       setSelectedFile(null);
-      setStatus(copy.uploadComplete);
       const input = window.document.getElementById("learning-material-file") as HTMLInputElement | null;
       if (input) input.value = "";
+
+      const processed = await processLearningMaterial(document.id);
+      replaceDocument(processed);
+      setStatus(processed.status === "CHUNKED" ? copy.uploadComplete : `${copy.uploadComplete} ${processed.status}`);
     } catch {
       setStatus(copy.uploadFailed);
+      listLearningMaterials().then(setDocuments).catch(() => undefined);
     } finally {
       setUploading(false);
     }
