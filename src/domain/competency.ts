@@ -1,5 +1,5 @@
 export type CompetencyScore = { competencyId: string; score: number; confidence: number };
-export type SkillGap = { competencyId: string; severity: "low" | "medium" | "high"; score: number; reason: string };
+export type SkillGap = { competencyId: string; severity: "low" | "medium" | "high"; score: number; confidence: number; reason: string };
 
 export function deriveSkillGaps(scores: CompetencyScore[], threshold = 60): SkillGap[] {
   return scores.map((item) => ({
