@@ -33,7 +33,7 @@ begin
   if coalesce(trim(p_title), '') = '' then
     raise exception 'title required' using errcode = '22023';
   end if;
-  if p_locale not in ('en','hi','te') then
+  if p_locale is null or p_locale not in ('en','hi','te') then
     raise exception 'unsupported locale' using errcode = '22023';
   end if;
   if jsonb_typeof(p_questions) <> 'array' or jsonb_array_length(p_questions) < 1 or jsonb_array_length(p_questions) > 20 then
@@ -100,7 +100,7 @@ begin
     end if;
 
     v_difficulty := v_item ->> 'difficulty';
-    if v_difficulty not in ('EASY','MEDIUM','HARD') then
+    if v_difficulty is null or v_difficulty not in ('EASY','MEDIUM','HARD') then
       raise exception 'valid difficulty required' using errcode = '22023';
     end if;
 
