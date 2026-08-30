@@ -30,6 +30,7 @@ export default function Home() {
   const [loadingDashboard, setLoadingDashboard] = useState(false);
   const [assessmentRefreshKey, setAssessmentRefreshKey] = useState(0);
   const [generatedAssessmentId, setGeneratedAssessmentId] = useState("");
+  const [materialsRefreshKey, setMaterialsRefreshKey] = useState(0);
 
   const copy = useMemo(() => ({
     ...messages[locale],
@@ -295,7 +296,7 @@ export default function Home() {
             </section>
 
             <div id="materials" className="materialsSection">
-              <DocumentUpload copy={copy} />
+              <DocumentUpload copy={copy} onDocumentProcessed={() => setMaterialsRefreshKey((current) => current + 1)} />
             </div>
 
             <div id="sources" className="sourceSearchSection">
@@ -303,7 +304,12 @@ export default function Home() {
             </div>
 
             <div id="assistant">
-              <AiWorkspace locale={locale} copy={copy} onQuizGenerated={handleQuizGenerated} />
+              <AiWorkspace
+                locale={locale}
+                copy={copy}
+                onQuizGenerated={handleQuizGenerated}
+                materialsRefreshKey={materialsRefreshKey}
+              />
             </div>
 
             <div id="assessments" className="assessmentSection">
