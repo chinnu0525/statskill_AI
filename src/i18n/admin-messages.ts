@@ -1,0 +1,46 @@
+import type { Locale } from "./messages";
+
+export const adminMessages: Record<Locale, Record<string, string>> = {
+  en: {
+    adminAnalytics: "Organization overview",
+    adminAnalyticsHint: "Aggregate capacity and learning indicators. Individual learner records are not shown here.",
+    workforce: "Workforce profiles",
+    averageCompetency: "Average competency",
+    averageAssessment: "Average assessment",
+    highPriorityGaps: "High-priority gaps",
+    completionRate: "Training completion",
+    topOrganizationGaps: "Largest competency gaps",
+    affectedLearners: "affected learners",
+    averageGap: "average gap",
+    adminLoading: "Loading organization analytics…",
+    adminUnavailable: "Organization analytics are temporarily unavailable."
+  },
+  hi: {
+    adminAnalytics: "संगठन अवलोकन",
+    adminAnalyticsHint: "समेकित क्षमता और प्रशिक्षण संकेतक। यहाँ व्यक्तिगत शिक्षार्थी रिकॉर्ड नहीं दिखाए जाते।",
+    workforce: "कार्यबल प्रोफ़ाइल",
+    averageCompetency: "औसत दक्षता",
+    averageAssessment: "औसत मूल्यांकन",
+    highPriorityGaps: "उच्च-प्राथमिकता अंतर",
+    completionRate: "प्रशिक्षण पूर्णता",
+    topOrganizationGaps: "मुख्य दक्षता अंतर",
+    affectedLearners: "प्रभावित शिक्षार्थी",
+    averageGap: "औसत अंतर",
+    adminLoading: "संगठन विश्लेषण लोड हो रहा है…",
+    adminUnavailable: "संगठन विश्लेषण अभी उपलब्ध नहीं है।"
+  },
+  te: {
+    adminAnalytics: "సంస్థ అవలోకనం",
+    adminAnalyticsHint: "సమగ్ర సామర్థ్య మరియు అభ్యాస సూచికలు. వ్యక్తిగత అభ్యాసకుల రికార్డులు ఇక్కడ చూపబడవు.",
+    workforce: "సిబ్బంది ప్రొఫైల్‌లు",
+    averageCompetency: "సగటు సామర్థ్యం",
+    averageAssessment: "సగటు మూల్యాంకనం",
+    highPriorityGaps: "అధిక ప్రాధాన్య లోపాలు",
+    completionRate: "శిక్షణ పూర్తి శాతం",
+    topOrganizationGaps: "ప్రధాన సామర్థ్య లోపాలు",
+    affectedLearners: "ప్రభావిత అభ్యాసకులు",
+    averageGap: "సగటు లోపం",
+    adminLoading: "సంస్థ విశ్లేషణ లోడ్ అవుతోంది…",
+    adminUnavailable: "సంస్థ విశ్లేషణ ప్రస్తుతం అందుబాటులో లేదు."
+  }
+};
