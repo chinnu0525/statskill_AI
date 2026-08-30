@@ -4,12 +4,14 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { localeLabels, messages, type Locale } from "../src/i18n/messages";
 import { assessmentMessages } from "../src/i18n/assessment-messages";
 import { adminMessages } from "../src/i18n/admin-messages";
+import { retrievalMessages } from "../src/i18n/retrieval-messages";
 import { getCurrentUser, signIn, signOut, signUp } from "../src/services/auth";
 import { loadDashboardData, updatePreferredLocale, type DashboardData } from "../src/services/dashboard";
 import { isSupabaseConfigured } from "../src/lib/supabase/client";
 import { DocumentUpload } from "./components/DocumentUpload";
 import { AssessmentPanel } from "./components/AssessmentPanel";
 import { AdminOverview } from "./components/AdminOverview";
+import { SourceSearch } from "./components/SourceSearch";
 
 const locales: Locale[] = ["en", "hi", "te"];
 const storageKey = "statskill-locale";
@@ -29,6 +31,7 @@ export default function Home() {
     ...messages[locale],
     ...assessmentMessages[locale],
     ...adminMessages[locale],
+    ...retrievalMessages[locale],
   }), [locale]);
   const configured = isSupabaseConfigured();
   const isAdmin = dashboard?.role === "ADMIN" || dashboard?.role === "SUPER_ADMIN";
@@ -201,6 +204,7 @@ export default function Home() {
               <a href="#skills">{copy.skills}</a>
               <a href="#learning">{copy.learning}</a>
               <a href="#materials">{copy.learningMaterials}</a>
+              <a href="#sources">{copy.sourceSearch}</a>
               <a href="#assessments">{copy.assessments}</a>
               {isAdmin ? <a href="#admin">{copy.adminAnalytics}</a> : null}
               <a href="#assistant">{copy.assistant}</a>
@@ -280,6 +284,10 @@ export default function Home() {
 
             <div id="materials" className="materialsSection">
               <DocumentUpload copy={copy} />
+            </div>
+
+            <div id="sources" className="sourceSearchSection">
+              <SourceSearch copy={copy} />
             </div>
 
             <div id="assessments" className="assessmentSection">
