@@ -1,6 +1,8 @@
 import type { Locale } from "../i18n/messages";
 import { createClient } from "../lib/supabase/client";
 
+export type UserRole = "OFFICIAL" | "TRAINER" | "ADMIN" | "SUPER_ADMIN";
+
 export type DashboardGap = {
   name: string;
   priority: "LOW" | "MEDIUM" | "HIGH";
@@ -15,6 +17,7 @@ export type DashboardCourse = {
 
 export type DashboardData = {
   fullName: string;
+  role: UserRole;
   competencyScore: number;
   gaps: DashboardGap[];
   courses: DashboardCourse[];
@@ -27,7 +30,7 @@ export async function loadDashboardData(locale: Locale): Promise<DashboardData> 
 
   const userId = authData.user.id;
   const [profileResult, competencyResult, gapResult, enrollmentResult] = await Promise.all([
-    supabase.from("profiles").select("full_name").eq("id", userId).single(),
+    supabase.from("profiles").select("full_name,role").eq("id", userId).single(),
     supabase.from("user_competencies").select("score").eq("user_id", userId),
     supabase
       .from("skill_gaps")
@@ -72,6 +75,7 @@ export async function loadDashboardData(locale: Locale): Promise<DashboardData> 
 
   return {
     fullName: profileResult.data?.full_name ?? "",
+    role: (profileResult.data?.role ?? "OFFICIAL") as UserRole,
     competencyScore,
     gaps,
     courses,
