@@ -38,6 +38,7 @@ export function AiWorkspace({
 
   useEffect(() => {
     setQuizRequestId(null);
+    setTutorRequestId(null);
     listQuizReadyDocuments()
       .then((items) => {
         setDocuments(items);
