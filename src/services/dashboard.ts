@@ -15,13 +15,28 @@ export type DashboardCourse = {
   progress: number;
 };
 
+export type DashboardProfile = {
+  designation: string;
+  department: string;
+  cadre: string;
+  assignment: string;
+  qualification: string;
+  experienceYears: number | null;
+  priorTraining: string;
+};
+
 export type DashboardData = {
   fullName: string;
   role: UserRole;
   competencyScore: number;
   gaps: DashboardGap[];
   courses: DashboardCourse[];
+  profile: DashboardProfile;
 };
+
+function metadataString(metadata: Record<string, unknown>, key: string) {
+  return typeof metadata[key] === "string" ? String(metadata[key]).trim() : "";
+}
 
 export async function loadDashboardData(locale: Locale): Promise<DashboardData> {
   const supabase = createClient();
@@ -73,12 +88,24 @@ export async function loadDashboardData(locale: Locale): Promise<DashboardData> 
     };
   });
 
+  const metadata = (authData.user.user_metadata ?? {}) as Record<string, unknown>;
+  const experience = metadata.experience_years;
+
   return {
-    fullName: profileResult.data?.full_name ?? "",
+    fullName: profileResult.data?.full_name ?? metadataString(metadata, "full_name"),
     role: (profileResult.data?.role ?? "OFFICIAL") as UserRole,
     competencyScore,
     gaps,
     courses,
+    profile: {
+      designation: metadataString(metadata, "designation"),
+      department: metadataString(metadata, "department"),
+      cadre: metadataString(metadata, "cadre"),
+      assignment: metadataString(metadata, "assignment"),
+      qualification: metadataString(metadata, "qualification"),
+      experienceYears: typeof experience === "number" && Number.isFinite(experience) ? experience : null,
+      priorTraining: metadataString(metadata, "prior_training"),
+    },
   };
 }
 
