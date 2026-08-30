@@ -37,7 +37,10 @@ export function AssessmentPanel({ locale, copy, onCompleted, refreshKey = 0, pre
           : items[0]?.id ?? "";
         setSelectedId(preferred);
       })
-      .catch(() => setAssessments([]));
+      .catch(() => {
+        setAssessments([]);
+        setSelectedId("");
+      });
   }, [locale, refreshKey, preferredAssessmentId]);
 
   async function startAssessment() {
