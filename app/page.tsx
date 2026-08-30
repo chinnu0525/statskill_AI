@@ -3,11 +3,13 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { localeLabels, messages, type Locale } from "../src/i18n/messages";
 import { assessmentMessages } from "../src/i18n/assessment-messages";
+import { adminMessages } from "../src/i18n/admin-messages";
 import { getCurrentUser, signIn, signOut, signUp } from "../src/services/auth";
 import { loadDashboardData, updatePreferredLocale, type DashboardData } from "../src/services/dashboard";
 import { isSupabaseConfigured } from "../src/lib/supabase/client";
 import { DocumentUpload } from "./components/DocumentUpload";
 import { AssessmentPanel } from "./components/AssessmentPanel";
+import { AdminOverview } from "./components/AdminOverview";
 
 const locales: Locale[] = ["en", "hi", "te"];
 const storageKey = "statskill-locale";
@@ -23,8 +25,13 @@ export default function Home() {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [loadingDashboard, setLoadingDashboard] = useState(false);
 
-  const copy = useMemo(() => ({ ...messages[locale], ...assessmentMessages[locale] }), [locale]);
+  const copy = useMemo(() => ({
+    ...messages[locale],
+    ...assessmentMessages[locale],
+    ...adminMessages[locale],
+  }), [locale]);
   const configured = isSupabaseConfigured();
+  const isAdmin = dashboard?.role === "ADMIN" || dashboard?.role === "SUPER_ADMIN";
 
   useEffect(() => {
     const saved = window.localStorage.getItem(storageKey) as Locale | null;
@@ -195,6 +202,7 @@ export default function Home() {
               <a href="#learning">{copy.learning}</a>
               <a href="#materials">{copy.learningMaterials}</a>
               <a href="#assessments">{copy.assessments}</a>
+              {isAdmin ? <a href="#admin">{copy.adminAnalytics}</a> : null}
               <a href="#assistant">{copy.assistant}</a>
             </nav>
             <div className="language">
@@ -277,6 +285,12 @@ export default function Home() {
             <div id="assessments" className="assessmentSection">
               <AssessmentPanel locale={locale} copy={copy} onCompleted={() => void refreshDashboard(locale)} />
             </div>
+
+            {isAdmin ? (
+              <div id="admin" className="adminSection">
+                <AdminOverview copy={copy} />
+              </div>
+            ) : null}
           </main>
         </div>
       ) : null}
