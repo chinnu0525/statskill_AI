@@ -126,9 +126,16 @@ function RadarGraphic() {
   );
 }
 
+function initialPortalRole(actualRole?: string | null): PortalRole {
+  if (actualRole === "SUPER_ADMIN") return "superadmin";
+  if (actualRole === "ADMIN") return "admin";
+  if (actualRole === "TRAINER") return "trainer";
+  return "learner";
+}
+
 export function PortalExperience(props: Props) {
   const [activeView, setActiveView] = useState<PortalView>("dashboard");
-  const [demoRole, setDemoRole] = useState<PortalRole>(props.actualRole === "ADMIN" ? "admin" : props.actualRole === "SUPER_ADMIN" ? "superadmin" : "learner");
+  const [demoRole, setDemoRole] = useState<PortalRole>(() => initialPortalRole(props.actualRole));
   const [fontLevel, setFontLevel] = useState(1);
   const [highContrast, setHighContrast] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -181,7 +188,7 @@ export function PortalExperience(props: Props) {
               const role = event.target.value as PortalRole;
               setDemoRole(role);
               const permitted = navItems.find((item) => item.id === activeView);
-              if (permitted?.roles !== "all" && !permitted.roles.includes(role)) setActiveView("home");
+              if (permitted && permitted.roles !== "all" && !permitted.roles.includes(role)) setActiveView("home");
             }}>
               <option value="learner">Learner</option>
               <option value="trainer">Trainer / Faculty</option>
@@ -191,6 +198,7 @@ export function PortalExperience(props: Props) {
           </label>
           <button type="button" className="iconButton" aria-label="Notifications">🔔</button>
           <button type="button" className="profileChip" onClick={() => navigate("profile")}><span>{firstName.slice(0, 1).toUpperCase()}</span><div><strong>{props.fullName || "Official User"}</strong><small>{props.actualRole || "OFFICIAL"}</small></div></button>
+          <button type="button" className="headerSignOut" onClick={props.onSignOut}>Sign out</button>
           <button type="button" className="menuButton" onClick={() => setMobileOpen((value) => !value)} aria-expanded={mobileOpen}>☰</button>
         </div>
       </header>
@@ -215,9 +223,7 @@ export function PortalExperience(props: Props) {
               </div>
               <div className="loopCard">
                 <span>360° competency improvement loop</span>
-                {[
-                  "Official profile", "Competencies", "Skill gaps", "iGOT learning", "AI assessment", "Score growth"
-                ].map((step, index) => <div key={step}><b>{index + 1}</b><p>{step}</p>{index < 5 ? <i>→</i> : null}</div>)}
+                {["Official profile", "Competencies", "Skill gaps", "iGOT learning", "AI assessment", "Score growth"].map((step, index) => <div key={step}><b>{index + 1}</b><p>{step}</p>{index < 5 ? <i>→</i> : null}</div>)}
               </div>
             </section>
 
