@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "./assessment.css";
 import "./admin.css";
+import "./retrieval.css";
 
 export const metadata: Metadata = {
   title: "StatSkill AI",
