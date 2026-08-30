@@ -72,10 +72,13 @@ function safeErrorCode(error: unknown) {
 export async function POST(request: Request) {
   let admin: Awaited<ReturnType<typeof authenticateBearerRequest>>["admin"] | null = null;
   let generationId: string | null = null;
+  let authenticatedUserId: string | null = null;
+  let generationStarted = false;
 
   try {
     const auth = await authenticateBearerRequest(request);
     admin = auth.admin;
+    authenticatedUserId = auth.user.id;
 
     let rawBody: unknown;
     try {
@@ -126,6 +129,7 @@ export async function POST(request: Request) {
         contextChunkIds: chunks.map((chunk) => chunk.id),
       },
     });
+    generationStarted = true;
 
     const provider = new VercelAiGatewayProvider(auth.user.id);
     const generation = await provider.answerTutorWithMetadata({
@@ -141,10 +145,15 @@ export async function POST(request: Request) {
       responseId: generation.responseId,
       responseModel: generation.responseModel,
     };
-    await completeAiGeneration(admin, body.requestId, {
-      usage: generation.usage,
-      resultMetadata,
-    });
+
+    try {
+      await completeAiGeneration(admin, body.requestId, auth.user.id, {
+        usage: generation.usage,
+        resultMetadata,
+      });
+    } catch (ledgerError) {
+      console.error("Tutor answer generated but ledger completion failed", ledgerError instanceof Error ? ledgerError.message : "unknown");
+    }
 
     return Response.json({
       generationId: body.requestId,
@@ -154,7 +163,9 @@ export async function POST(request: Request) {
       reused: false,
     });
   } catch (error) {
-    if (admin && generationId) await failAiGeneration(admin, generationId, safeErrorCode(error));
+    if (admin && generationId && authenticatedUserId && generationStarted) {
+      await failAiGeneration(admin, generationId, authenticatedUserId, safeErrorCode(error));
+    }
     if (error instanceof ServerAuthError) return jsonError(error.message, error.status);
     if (error instanceof AiContractValidationError) return jsonError("AI_OUTPUT_VALIDATION_FAILED", 422);
     if (error instanceof Error && error.message === "AI_GATEWAY_MODEL_NOT_CONFIGURED") return jsonError("AI_GATEWAY_NOT_CONFIGURED", 503);
