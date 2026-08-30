@@ -15,6 +15,11 @@ type ChunkRow = {
   metadata: Record<string, unknown> | null;
 };
 
+type TutorSearchRow = ChunkRow & {
+  source_title: string | null;
+  rank: number | null;
+};
+
 function mapChunk(row: ChunkRow, fallbackTitle: string): GroundingContextChunk {
   const metadataTitle = row.metadata?.source_title;
   return {
@@ -75,25 +80,18 @@ export async function loadQuizGroundingContext(admin: SupabaseClient, userId: st
 }
 
 export async function loadTutorGroundingContext(admin: SupabaseClient, userId: string, question: string, limit = 8) {
-  const { data: documents, error: documentError } = await admin
-    .from("documents")
-    .select("id,title")
-    .eq("owner_id", userId)
-    .eq("status", "CHUNKED");
-  if (documentError) throw documentError;
-  if (!documents?.length) return [];
+  const boundedLimit = Math.min(Math.max(limit, 1), 12);
+  const { data: rows, error } = await admin.rpc("search_user_document_chunks", {
+    p_user_id: userId,
+    p_query: question,
+    p_limit: boundedLimit,
+  });
+  if (error) throw error;
 
-  const titleById = new Map(documents.map((document) => [document.id, document.title]));
-  const documentIds = documents.map((document) => document.id);
-  const { data: rows, error: chunkError } = await admin
-    .from("document_chunks")
-    .select("id,document_id,chunk_index,content,metadata")
-    .in("document_id", documentIds)
-    .textSearch("search_vector", question, { config: "simple", type: "websearch" })
-    .limit(Math.min(Math.max(limit, 1), 12));
-  if (chunkError) throw chunkError;
-
-  return (rows ?? []).map((row) => mapChunk(row as ChunkRow, titleById.get(row.document_id) ?? "Learning material"));
+  return (rows ?? []).map((rawRow) => {
+    const row = rawRow as TutorSearchRow;
+    return mapChunk(row, row.source_title?.trim() || "Learning material");
+  });
 }
 
 export class AiContextError extends Error {
