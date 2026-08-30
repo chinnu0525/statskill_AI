@@ -9,60 +9,45 @@ export function hashPrivateText(value: string) {
 }
 
 export async function startAiGeneration(
-  admin: SupabaseClient,
+  client: SupabaseClient,
   input: {
     id: string;
-    userId: string;
     feature: GenerationFeature;
     sourceDocumentId?: string | null;
     model: string;
     requestMetadata?: Record<string, unknown>;
   },
 ) {
-  const { error } = await admin.from("ai_generations").insert({
-    id: input.id,
-    user_id: input.userId,
-    feature: input.feature,
-    source_document_id: input.sourceDocumentId ?? null,
-    model: input.model,
-    status: "PENDING",
-    request_metadata: input.requestMetadata ?? {},
+  const { error } = await client.rpc("begin_my_ai_generation", {
+    p_generation_id: input.id,
+    p_feature: input.feature,
+    p_source_document_id: input.sourceDocumentId ?? null,
+    p_model: input.model,
+    p_request_metadata: input.requestMetadata ?? {},
   });
   if (error) throw error;
 }
 
 export async function completeAiGeneration(
-  admin: SupabaseClient,
+  client: SupabaseClient,
   id: string,
-  userId: string,
   input: {
     usage: NormalizedAiUsage;
     resultMetadata: Record<string, unknown>;
   },
 ) {
-  const { error } = await admin
-    .from("ai_generations")
-    .update({
-      status: "COMPLETE",
-      token_usage: input.usage,
-      result_metadata: input.resultMetadata,
-      error_code: null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", id)
-    .eq("user_id", userId);
+  const { error } = await client.rpc("complete_my_ai_generation", {
+    p_generation_id: id,
+    p_token_usage: input.usage,
+    p_result_metadata: input.resultMetadata,
+  });
   if (error) throw error;
 }
 
-export async function failAiGeneration(admin: SupabaseClient, id: string, userId: string, errorCode: string) {
-  const { error } = await admin
-    .from("ai_generations")
-    .update({
-      status: "ERROR",
-      error_code: errorCode.slice(0, 120),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", id)
-    .eq("user_id", userId);
+export async function failAiGeneration(client: SupabaseClient, id: string, errorCode: string) {
+  const { error } = await client.rpc("fail_my_ai_generation", {
+    p_generation_id: id,
+    p_error_code: errorCode.slice(0, 120),
+  });
   if (error) console.error("AI generation ledger error update failed", error.message);
 }

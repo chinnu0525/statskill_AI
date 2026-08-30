@@ -1,5 +1,5 @@
 import { AiContractValidationError } from "../../../../src/domain/ai";
-import { authenticateBearerRequest, ServerAuthError } from "../../../../src/lib/server/supabase-admin";
+import { authenticateBearerRequest, ServerAuthError } from "../../../../src/lib/server/supabase-request";
 import { loadTutorGroundingContext } from "../../../../src/services/server/ai-context";
 import {
   completeAiGeneration,
@@ -70,15 +70,13 @@ function safeErrorCode(error: unknown) {
 }
 
 export async function POST(request: Request) {
-  let admin: Awaited<ReturnType<typeof authenticateBearerRequest>>["admin"] | null = null;
+  let supabase: Awaited<ReturnType<typeof authenticateBearerRequest>>["supabase"] | null = null;
   let generationId: string | null = null;
-  let authenticatedUserId: string | null = null;
   let generationStarted = false;
 
   try {
     const auth = await authenticateBearerRequest(request);
-    admin = auth.admin;
-    authenticatedUserId = auth.user.id;
+    supabase = auth.supabase;
 
     let rawBody: unknown;
     try {
@@ -90,11 +88,10 @@ export async function POST(request: Request) {
     if (!body) return jsonError("INVALID_REQUEST", 400);
     generationId = body.requestId;
 
-    const { data: existing } = await admin
+    const { data: existing } = await supabase
       .from("ai_generations")
       .select("status,feature,result_metadata")
       .eq("id", body.requestId)
-      .eq("user_id", auth.user.id)
       .maybeSingle();
 
     if (existing?.feature && existing.feature !== "TUTOR") return jsonError("REQUEST_ID_ALREADY_USED", 409);
@@ -104,9 +101,8 @@ export async function POST(request: Request) {
       if (stored) return Response.json({ generationId: body.requestId, ...stored, reused: true });
       return jsonError("GENERATION_RESULT_UNAVAILABLE", 409);
     }
-    if (existing) return jsonError("REQUEST_ID_ALREADY_USED", 409);
 
-    const chunks = await loadTutorGroundingContext(admin, auth.user.id, body.question);
+    const chunks = await loadTutorGroundingContext(supabase, body.question);
     if (!chunks.length) {
       return Response.json({
         generationId: body.requestId,
@@ -118,9 +114,8 @@ export async function POST(request: Request) {
     }
 
     const model = configuredGatewayModel();
-    await startAiGeneration(admin, {
+    await startAiGeneration(supabase, {
       id: body.requestId,
-      userId: auth.user.id,
       feature: "TUTOR",
       model,
       requestMetadata: {
@@ -147,7 +142,7 @@ export async function POST(request: Request) {
     };
 
     try {
-      await completeAiGeneration(admin, body.requestId, auth.user.id, {
+      await completeAiGeneration(supabase, body.requestId, {
         usage: generation.usage,
         resultMetadata,
       });
@@ -163,8 +158,8 @@ export async function POST(request: Request) {
       reused: false,
     });
   } catch (error) {
-    if (admin && generationId && authenticatedUserId && generationStarted) {
-      await failAiGeneration(admin, generationId, authenticatedUserId, safeErrorCode(error));
+    if (supabase && generationId && generationStarted) {
+      await failAiGeneration(supabase, generationId, safeErrorCode(error));
     }
     if (error instanceof ServerAuthError) return jsonError(error.message, error.status);
     if (error instanceof AiContractValidationError) return jsonError("AI_OUTPUT_VALIDATION_FAILED", 422);

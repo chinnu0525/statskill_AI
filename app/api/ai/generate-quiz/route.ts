@@ -1,11 +1,7 @@
 import { AiContractValidationError } from "../../../../src/domain/ai";
-import { authenticateBearerRequest, ServerAuthError } from "../../../../src/lib/server/supabase-admin";
+import { authenticateBearerRequest, ServerAuthError } from "../../../../src/lib/server/supabase-request";
 import { AiContextError, loadQuizGroundingContext } from "../../../../src/services/server/ai-context";
-import {
-  completeAiGeneration,
-  failAiGeneration,
-  startAiGeneration,
-} from "../../../../src/services/server/ai-generation-ledger";
+import { failAiGeneration, startAiGeneration } from "../../../../src/services/server/ai-generation-ledger";
 import { configuredGatewayModel, VercelAiGatewayProvider } from "../../../../src/services/server/vercel-ai-provider";
 
 export const runtime = "nodejs";
@@ -46,14 +42,12 @@ function safeErrorCode(error: unknown) {
 
 export async function POST(request: Request) {
   let generationId: string | null = null;
-  let authenticatedUserId: string | null = null;
   let generationStarted = false;
-  let admin: Awaited<ReturnType<typeof authenticateBearerRequest>>["admin"] | null = null;
+  let supabase: Awaited<ReturnType<typeof authenticateBearerRequest>>["supabase"] | null = null;
 
   try {
     const auth = await authenticateBearerRequest(request);
-    admin = auth.admin;
-    authenticatedUserId = auth.user.id;
+    supabase = auth.supabase;
 
     let rawBody: unknown;
     try {
@@ -66,11 +60,10 @@ export async function POST(request: Request) {
     if (!body) return jsonError("INVALID_REQUEST", 400);
     generationId = body.requestId;
 
-    const { data: existingAssessment } = await admin
+    const { data: existingAssessment } = await supabase
       .from("assessments")
       .select("id,title")
       .eq("generation_id", body.requestId)
-      .eq("owner_id", auth.user.id)
       .maybeSingle();
     if (existingAssessment) {
       return Response.json({
@@ -81,21 +74,20 @@ export async function POST(request: Request) {
       });
     }
 
-    const { data: existingGeneration } = await admin
+    const { data: existingGeneration } = await supabase
       .from("ai_generations")
       .select("status,feature")
       .eq("id", body.requestId)
-      .eq("user_id", auth.user.id)
       .maybeSingle();
+    if (existingGeneration?.feature && existingGeneration.feature !== "QUIZ") return jsonError("REQUEST_ID_ALREADY_USED", 409);
     if (existingGeneration?.status === "PENDING") return jsonError("GENERATION_IN_PROGRESS", 409);
-    if (existingGeneration) return jsonError("REQUEST_ID_ALREADY_USED", 409);
+    if (existingGeneration?.status === "COMPLETE") return jsonError("REQUEST_ID_ALREADY_USED", 409);
 
-    const { document, chunks } = await loadQuizGroundingContext(admin, auth.user.id, body.documentId);
+    const { document, chunks } = await loadQuizGroundingContext(supabase, body.documentId);
     const model = configuredGatewayModel();
 
-    await startAiGeneration(admin, {
+    await startAiGeneration(supabase, {
       id: body.requestId,
-      userId: auth.user.id,
       feature: "QUIZ",
       sourceDocumentId: document.id,
       model,
@@ -118,30 +110,19 @@ export async function POST(request: Request) {
       chunks,
     });
 
-    const { data: assessmentId, error: persistenceError } = await admin.rpc("persist_generated_assessment", {
+    const { data: assessmentId, error: persistenceError } = await supabase.rpc("persist_my_generated_assessment", {
       p_generation_id: body.requestId,
-      p_owner_id: auth.user.id,
       p_document_id: document.id,
       p_title: generation.value.title,
       p_locale: body.locale,
       p_questions: generation.value.questions,
+      p_token_usage: generation.usage,
+      p_result_metadata: {
+        responseId: generation.responseId,
+        responseModel: generation.responseModel,
+      },
     });
     if (persistenceError || !assessmentId) throw persistenceError ?? new Error("ASSESSMENT_PERSISTENCE_FAILED");
-
-    try {
-      await completeAiGeneration(admin, body.requestId, auth.user.id, {
-        usage: generation.usage,
-        resultMetadata: {
-          assessmentId,
-          title: generation.value.title,
-          questionCount: generation.value.questions.length,
-          responseId: generation.responseId,
-          responseModel: generation.responseModel,
-        },
-      });
-    } catch (ledgerError) {
-      console.error("Quiz persisted but generation ledger completion failed", ledgerError instanceof Error ? ledgerError.message : "unknown");
-    }
 
     return Response.json({
       generationId: body.requestId,
@@ -150,8 +131,8 @@ export async function POST(request: Request) {
       reused: false,
     });
   } catch (error) {
-    if (admin && generationId && authenticatedUserId && generationStarted) {
-      await failAiGeneration(admin, generationId, authenticatedUserId, safeErrorCode(error));
+    if (supabase && generationId && generationStarted) {
+      await failAiGeneration(supabase, generationId, safeErrorCode(error));
     }
     if (error instanceof ServerAuthError) return jsonError(error.message, error.status);
     if (error instanceof AiContextError) return jsonError(error.message, error.status);
