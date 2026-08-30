@@ -6,6 +6,20 @@ function requireServerEnv(name: "NEXT_PUBLIC_SUPABASE_URL" | "NEXT_PUBLIC_SUPABA
   return value;
 }
 
+function createSupabaseAuthVerifierClient(): SupabaseClient {
+  return createClient(
+    requireServerEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    requireServerEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"),
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    },
+  );
+}
+
 export function createSupabaseRequestClient(accessToken: string): SupabaseClient {
   return createClient(
     requireServerEnv("NEXT_PUBLIC_SUPABASE_URL"),
@@ -25,10 +39,14 @@ export async function authenticateBearerRequest(request: Request): Promise<{ sup
   const token = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
   if (!token) throw new ServerAuthError("AUTH_REQUIRED", 401);
 
-  const supabase = createSupabaseRequestClient(token);
-  const { data, error } = await supabase.auth.getUser(token);
+  const verifier = createSupabaseAuthVerifierClient();
+  const { data, error } = await verifier.auth.getUser(token);
   if (error || !data.user) throw new ServerAuthError("INVALID_SESSION", 401);
-  return { supabase, user: data.user };
+
+  return {
+    supabase: createSupabaseRequestClient(token),
+    user: data.user,
+  };
 }
 
 export class ServerAuthError extends Error {
