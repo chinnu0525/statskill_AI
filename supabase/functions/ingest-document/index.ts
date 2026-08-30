@@ -4,7 +4,12 @@ import JSZip from "npm:jszip@3.10.1";
 import pdfParse from "npm:pdf-parse@1.1.1";
 import { Buffer } from "node:buffer";
 
-const jsonHeaders = { "Content-Type": "application/json" };
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
 const MAX_CHUNK = 1200;
 const OVERLAP = 180;
 
@@ -77,6 +82,9 @@ async function extractText(bytes: ArrayBuffer, extension: string) {
 }
 
 Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { status: 200, headers: corsHeaders });
+  }
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
