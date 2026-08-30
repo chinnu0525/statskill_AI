@@ -79,7 +79,12 @@ export async function loadQuizGroundingContext(admin: SupabaseClient, userId: st
   return { document: document as OwnedDocument, chunks };
 }
 
-export async function loadTutorGroundingContext(admin: SupabaseClient, userId: string, question: string, limit = 8) {
+export async function loadTutorGroundingContext(
+  admin: SupabaseClient,
+  userId: string,
+  question: string,
+  limit = 8,
+): Promise<GroundingContextChunk[]> {
   const boundedLimit = Math.min(Math.max(limit, 1), 12);
   const { data: rows, error } = await admin.rpc("search_user_document_chunks", {
     p_user_id: userId,
@@ -88,8 +93,8 @@ export async function loadTutorGroundingContext(admin: SupabaseClient, userId: s
   });
   if (error) throw error;
 
-  return (rows ?? []).map((rawRow) => {
-    const row = rawRow as TutorSearchRow;
+  return (rows ?? []).map((rawRow: TutorSearchRow) => {
+    const row = rawRow;
     return mapChunk(row, row.source_title?.trim() || "Learning material");
   });
 }
