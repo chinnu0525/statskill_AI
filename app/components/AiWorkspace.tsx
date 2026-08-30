@@ -16,10 +16,12 @@ export function AiWorkspace({
   locale,
   copy,
   onQuizGenerated,
+  materialsRefreshKey = 0,
 }: {
   locale: Locale;
   copy: Record<string, string>;
   onQuizGenerated: (assessmentId: string) => void;
+  materialsRefreshKey?: number;
 }) {
   const [documents, setDocuments] = useState<LearningDocument[]>([]);
   const [documentId, setDocumentId] = useState("");
@@ -42,7 +44,7 @@ export function AiWorkspace({
         setDocuments([]);
         setDocumentId("");
       });
-  }, []);
+  }, [materialsRefreshKey]);
 
   function aiErrorMessage(error: unknown, fallback: string) {
     if (error instanceof AiApiError && ["AI_GATEWAY_NOT_CONFIGURED", "AI_GATEWAY_AUTH_NOT_CONFIGURED"].includes(error.code)) {
