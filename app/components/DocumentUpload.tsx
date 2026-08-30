@@ -9,7 +9,10 @@ import {
   type LearningDocument,
 } from "../../src/services/documents";
 
-export function DocumentUpload({ copy }: { copy: Record<string, string> }) {
+export function DocumentUpload({ copy, onDocumentProcessed }: {
+  copy: Record<string, string>;
+  onDocumentProcessed?: (document: LearningDocument) => void;
+}) {
   const [documents, setDocuments] = useState<LearningDocument[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [status, setStatus] = useState("");
@@ -46,6 +49,7 @@ export function DocumentUpload({ copy }: { copy: Record<string, string> }) {
 
       const processed = await processLearningMaterial(document.id);
       replaceDocument(processed);
+      if (processed.status === "CHUNKED") onDocumentProcessed?.(processed);
       setStatus(processed.status === "CHUNKED" ? copy.uploadComplete : `${copy.uploadComplete} ${processed.status}`);
     } catch {
       setStatus(copy.uploadFailed);
