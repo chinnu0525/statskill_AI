@@ -29,13 +29,14 @@ After the preview is built:
 1. Open `/api/health`.
 2. Confirm HTTP 200 and `checks.supabase=true`.
 3. Confirm `checks.aiGateway=true` before running an AI smoke test.
-4. Load the app and verify the English/Hindi/Telugu selector.
-5. Sign in with a test account.
-6. Upload a small non-sensitive TXT/PDF/DOCX/PPTX learning material.
-7. Confirm ingestion reaches the CHUNKED state and source search returns only that account's material.
-8. Ask one grounded tutor question and verify cited source chunks.
-9. Generate one small quiz (for example 3 questions), complete it, and verify the secure scorer works.
-10. Verify an ordinary learner cannot access admin analytics.
+4. Record the exact Git commit SHA that passed CI and CodeRabbit. Confirm the Vercel deployment's Git commit is that same commit, and confirm `/api/health` `release` equals the first 12 characters of that reviewed SHA. Do not promote a different or newer deployment without reviewing that new head again.
+5. Load the app and verify the English/Hindi/Telugu selector.
+6. Sign in with a test account.
+7. Upload a small non-sensitive TXT/PDF/DOCX/PPTX learning material.
+8. Confirm ingestion reaches the CHUNKED state and source search returns only that account's material.
+9. Ask one grounded tutor question and verify cited source chunks.
+10. Generate one small quiz (for example 3 questions), complete it, and verify the secure scorer works.
+11. Verify an ordinary learner cannot access admin analytics.
 
 ## Release gates
 
@@ -46,6 +47,7 @@ Production promotion requires all of the following on the exact release head:
 - Next.js production build passed.
 - Supabase security advisor has zero security lints.
 - CodeRabbit review completed and all actionable issues resolved.
+- Vercel deployment commit and `/api/health` `release` match the exact reviewed release head.
 - Preview `/api/health` is healthy.
 - Browser smoke test and AI smoke test passed.
 
