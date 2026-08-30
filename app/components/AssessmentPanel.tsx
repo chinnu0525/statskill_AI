@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Locale } from "../../src/i18n/messages";
+import { assessmentMessages } from "../../src/i18n/assessment-messages";
 import {
   listAssessments,
   loadAssessmentQuestions,
@@ -10,11 +11,11 @@ import {
   type AssessmentSummary,
 } from "../../src/services/assessments";
 
-export function AssessmentPanel({ locale, copy, onCompleted }: {
+export function AssessmentPanel({ locale, onCompleted }: {
   locale: Locale;
-  copy: Record<string, string>;
   onCompleted: () => void;
 }) {
+  const copy = assessmentMessages[locale];
   const [assessments, setAssessments] = useState<AssessmentSummary[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [questions, setQuestions] = useState<AssessmentQuestion[]>([]);
