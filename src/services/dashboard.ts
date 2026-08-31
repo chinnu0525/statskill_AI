@@ -32,6 +32,8 @@ export type DashboardData = {
   gaps: DashboardGap[];
   courses: DashboardCourse[];
   profile: DashboardProfile;
+  learningHours: number;
+  assessmentsCompleted: number;
 };
 
 function metadataString(metadata: Record<string, unknown>, key: string) {
@@ -44,7 +46,7 @@ export async function loadDashboardData(locale: Locale): Promise<DashboardData> 
   if (authError || !authData.user) throw new Error("AUTH_REQUIRED");
 
   const userId = authData.user.id;
-  const [profileResult, competencyResult, gapResult, enrollmentResult] = await Promise.all([
+  const [profileResult, competencyResult, gapResult, enrollmentResult, learningMetricResult, assessmentMetricResult] = await Promise.all([
     supabase.from("profiles").select("full_name,role").eq("id", userId).single(),
     supabase.from("user_competencies").select("score").eq("user_id", userId),
     supabase
@@ -59,9 +61,18 @@ export async function loadDashboardData(locale: Locale): Promise<DashboardData> 
       .eq("user_id", userId)
       .order("progress", { ascending: false })
       .limit(5),
+    supabase
+      .from("learning_enrollments")
+      .select("progress,courses(duration_minutes)")
+      .eq("user_id", userId),
+    supabase
+      .from("assessment_attempts")
+      .select("id")
+      .eq("user_id", userId)
+      .not("completed_at", "is", null),
   ]);
 
-  const firstError = [profileResult.error, competencyResult.error, gapResult.error, enrollmentResult.error].find(Boolean);
+  const firstError = [profileResult.error, competencyResult.error, gapResult.error, enrollmentResult.error, learningMetricResult.error, assessmentMetricResult.error].find(Boolean);
   if (firstError) throw firstError;
 
   const scores = competencyResult.data ?? [];
@@ -88,6 +99,14 @@ export async function loadDashboardData(locale: Locale): Promise<DashboardData> 
     };
   });
 
+  const equivalentMinutes = (learningMetricResult.data ?? []).reduce((sum: number, item: any) => {
+    const duration = Number(item.courses?.duration_minutes ?? 0);
+    const progress = Math.max(0, Math.min(100, Number(item.progress ?? 0)));
+    return sum + duration * (progress / 100);
+  }, 0);
+  const learningHours = Math.round((equivalentMinutes / 60) * 10) / 10;
+  const assessmentsCompleted = (assessmentMetricResult.data ?? []).length;
+
   const metadata = (authData.user.user_metadata ?? {}) as Record<string, unknown>;
   const experience = metadata.experience_years;
 
@@ -97,6 +116,8 @@ export async function loadDashboardData(locale: Locale): Promise<DashboardData> 
     competencyScore,
     gaps,
     courses,
+    learningHours,
+    assessmentsCompleted,
     profile: {
       designation: metadataString(metadata, "designation"),
       department: metadataString(metadata, "department"),
