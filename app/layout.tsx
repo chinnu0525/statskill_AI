@@ -8,6 +8,7 @@ import "./admin.css";
 import "./retrieval.css";
 import "./ai.css";
 import "./recommendations.css";
+import "./learning.css";
 import "./lovable-port.css";
 
 export const metadata: Metadata = {

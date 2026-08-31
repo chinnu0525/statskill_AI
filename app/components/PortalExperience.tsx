@@ -3,6 +3,7 @@
 import { ReactNode, useMemo, useState } from "react";
 import type { Locale } from "../../src/i18n/messages";
 import { portalMessages } from "../../src/i18n/portal-messages";
+import { ExternalCatalogPanel, LearningPathPanel } from "./LearningCatalogPanels";
 import { RecommendationAdvisor } from "./RecommendationAdvisor";
 
 export type PortalRole = "learner" | "trainer" | "admin" | "superadmin";
@@ -47,14 +48,6 @@ const competencyDomains = [
   { name: "Behavioural & Managerial", items: ["Leadership", "Communication", "Project Management", "Ethics", "Decision Making", "Change Management"] },
 ];
 
-const weights = [["Gap", 30], ["Role", 20], ["Career", 15], ["Department", 15], ["Prior", 10], ["Demand", 10]] as const;
-const demoRecommendations = [
-  { title: "Python for Official Statistics", source: "IGOT_MOCK", score: 92, competency: "Python" },
-  { title: "Advanced Survey Sampling", source: "NSSTA_MOCK", score: 88, competency: "Sampling" },
-  { title: "Data Quality & Metadata Governance", source: "TPAC_DEMO", score: 83, competency: "Data Quality" },
-];
-const roadmap = [["01", "Foundation", "2 weeks", 70], ["02", "Applied Practice", "3 weeks", 35], ["03", "Advanced Capability", "4 weeks", 0], ["04", "Assessment & Evidence", "1 week", 0]] as const;
-
 function initialRole(role?: string | null): PortalRole {
   if (role === "SUPER_ADMIN") return "superadmin";
   if (role === "ADMIN") return "admin";
@@ -82,7 +75,6 @@ export function PortalExperience(props: Props) {
   const [contrast, setContrast] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
-  const [whyCourse, setWhyCourse] = useState<(typeof demoRecommendations)[number] | null>(null);
   const nav = useMemo(() => navConfig.filter((item) => item.roles === "all" || item.roles.includes(role)), [role]);
   const firstName = props.fullName?.split(" ")[0] || t.learner;
   const learningProgress = props.courses.length ? `${Math.round(props.courses.reduce((sum, course) => sum + course.progress, 0) / props.courses.length)}%` : t.unavailable;
@@ -98,8 +90,8 @@ export function PortalExperience(props: Props) {
       {view === "framework" && <div className="portalStack"><section className="pageIntro"><span>{t.frameworkBadge}</span><h1>{t.frameworkTitle}</h1><p>{t.frameworkText}</p></section><div className="domainGrid">{competencyDomains.map((d,di)=><article className="portalCard" key={d.name}><div className="domainHeader"><span>Domain {di+1}</span><h2>{d.name}</h2></div>{d.items.map((item,i)=><div className="competencyRow" key={item}><div><strong>{item}</strong><small>L{(i%3)+2} {t.current} · L4 {t.required}</small></div><div className="levelDots">{[1,2,3,4,5].map(l=><i key={l} className={l<=((i%3)+2)?"filled":""}/>)}</div></div>)}</article>)}</div><section className="portalCard proficiencyScale"><h2>{t.proficiencyModel}</h2>{["L1","L2","L3","L4","L5"].map(l=><span key={l}>{l}</span>)}</section></div>}
       {view === "assessment" && <div className="portalStack"><section className="pageIntro"><span>{t.assessmentBadge}</span><h1>{t.assessmentTitle}</h1><p>{t.assessmentText}</p></section>{props.assessmentNode}</div>}
       {view === "advisor" && <div className="portalStack"><section className="pageIntro"><span>{t.advisorBadge}</span><h1>{t.advisorTitle}</h1><p>{t.advisorText}</p></section><RecommendationAdvisor locale={props.locale} onEnrollmentChanged={props.onLearningChanged}/></div>}
-      {view === "learning" && <div className="portalStack"><section className="pageIntro"><span>{t.learningBadge}</span><h1>{t.learningTitle}</h1><p>{t.learningText}</p></section><DemoBanner text={t.demoNotice}/><div className="roadmap">{roadmap.map(([phase,title,duration,progress])=><article key={phase}><span className="phaseNumber">{phase}</span><div><small>{duration}</small><h2>{title}</h2><div className="miniProgress"><span style={{width:`${progress}%`}}/></div><b>{progress?`${progress}% ${t.complete}`:t.notStarted}</b></div></article>)}</div></div>}
-      {view === "igot" && <div className="portalStack"><section className="pageIntro"><span>{t.igotBadge}</span><h1>{t.igotTitle}</h1><p>{t.igotText}</p></section><DemoBanner text={t.demoNotice}/><section className="syncBanner"><div><span className="statusDot"/> {t.mockSyncHealthy}</div><div>{t.mockAdapters}: IGOT_MOCK · NSSTA_MOCK</div></section><div className="catalogGrid">{demoRecommendations.map(course=><article className="portalCard" key={course.title}><span className="sourceBadge">{course.source}</span><h2>{course.title}</h2><div className="catalogMeta"><span>{course.competency}</span><span>Self-paced</span></div><button type="button" className="primaryAction">{t.viewLearningItem}</button></article>)}</div></div>}
+      {view === "learning" && <div className="portalStack"><section className="pageIntro"><span>{t.learningBadge}</span><h1>{t.learningTitle}</h1><p>{t.learningText}</p></section><LearningPathPanel locale={props.locale}/></div>}
+      {view === "igot" && <div className="portalStack"><section className="pageIntro"><span>{t.igotBadge}</span><h1>{t.igotTitle}</h1><p>{t.igotText}</p></section><ExternalCatalogPanel locale={props.locale}/></div>}
       {view === "generator" && <div className="portalStack"><section className="pageIntro"><span>{t.generatorBadge}</span><h1>{t.generatorTitle}</h1><p>{t.generatorText}</p></section><section className="pipeline">{t.pipeline.map((step,i)=><span key={step}>{i+1} {step}</span>)}</section>{props.materialsNode}{props.sourceNode}{props.aiNode}</div>}
       {view === "trainer" && <div className="portalStack"><section className="pageIntro"><span>{t.trainerBadge}</span><h1>{t.trainerTitle}</h1><p>{t.trainerText}</p></section><DemoBanner text={t.trainerDemo}/><section className="metricGrid"><StatCard label="Pending QA" value="18" note={t.demoNotice}/><StatCard label="Approved" value="42" note={t.demoNotice}/><StatCard label="Cohorts" value="6" note={t.demoNotice}/><StatCard label="Weak topics" value="9" note={t.demoNotice}/></section><section className="portalCard"><h2>{t.trainerHub}</h2>{["Sampling frame bias","CPI elementary aggregates","Metadata quality checks"].map((x,i)=><div className="reviewRow" key={x}><div><strong>{x}</strong><small>DEMO · Source S{i+1}</small></div><Pill priority={i===0?"HIGH":"MEDIUM"}/></div>)}</section></div>}
       {view === "admin" && <div className="portalStack"><section className="pageIntro"><span>{t.adminBadge}</span><h1>{t.adminTitle}</h1><p>{t.adminText}</p></section>{props.adminNode || <DemoBanner text={t.adminUnavailable}/>}<DemoBanner text={t.demoNotice}/><section className="dashboardSplit"><article className="portalCard"><h2>Department heatmap · DEMO</h2><div className="heatmap">{["NSO Survey","National Accounts","Price Statistics","Field Operations","Data Innovation"].map((d,r)=><div key={d}><span>{d}</span>{[1,2,3,4,5].map(c=><i key={c} style={{opacity:.25+(((r+c)%5)*.16)}}/>)}</div>)}</div></article><article className="portalCard"><h2>Future skills · DEMO</h2>{[["AI / ML",86],["Cloud & APIs",78],["Geospatial analytics",73]].map(([s,v])=><div className="barRow" key={String(s)}><span>{s}</span><div><i style={{width:`${v}%`}}/></div><b>{v}</b></div>)}</article></section></div>}
@@ -110,6 +102,5 @@ export function PortalExperience(props: Props) {
     <footer className="portalFooter"><div><strong>StatSkill AI</strong><p>{t.portalSubtitle}</p></div><div><strong>{t.framework}</strong><span>{t.advisor}</span><span>{t.generator}</span></div><div><strong>{t.igot}</strong><span>MoSPI</span><span>NSSTA</span></div><small>{t.demoPrivacy}</small></footer>
     <button className="floatingAssistant" type="button" onClick={()=>setAssistantOpen(v=>!v)}>✦ <span>StatSkill AI</span></button>
     {assistantOpen&&<aside className="assistantDrawer"><div className="cardHeading"><div><span>{t.groundedAssistant}</span><h2>{t.assistantTitle}</h2></div><button type="button" onClick={()=>setAssistantOpen(false)}>×</button></div><p>{t.assistantText}</p><div className="quickPrompts"><button type="button" onClick={()=>{setAssistantOpen(false);go("generator")}}>{t.askGrounded}</button><button type="button" onClick={()=>{setAssistantOpen(false);go("generator")}}>{t.generatePractice}</button><button type="button" onClick={()=>{setAssistantOpen(false);go("framework")}}>{t.viewCompetencyGaps}</button></div><small>{t.aiDisclaimer}</small></aside>}
-    {whyCourse&&<div className="modalBackdrop" role="dialog" aria-modal="true"><div className="portalModal"><div className="cardHeading"><h2>{t.whyCourse}: {whyCourse.title}</h2><button type="button" onClick={()=>setWhyCourse(null)}>×</button></div><DemoBanner text={t.demoNotice}/><div className="scoreBreakdown">{weights.map(([label,w],i)=><div key={label}><span>{label} ({w}%)</span><div><i style={{width:`${80-i*5}%`}}/></div><b>{80-i*3}</b></div>)}</div><button type="button" className="primaryAction" onClick={()=>setWhyCourse(null)}>OK</button></div></div>}
   </div>;
 }
