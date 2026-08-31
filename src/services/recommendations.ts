@@ -141,7 +141,8 @@ function externalGap(row: ExternalRow, gaps: GapRow[]) {
   return gaps.find((gap) => {
     const gapName = normalizedText(gap.competencies?.name ?? "");
     if (!gapName) return false;
-    return competencyName.includes(gapName) || gapName.includes(competencyName) || title.includes(gapName);
+    const metadataMatch = Boolean(competencyName) && (competencyName.includes(gapName) || gapName.includes(competencyName));
+    return metadataMatch || title.includes(gapName);
   });
 }
 
@@ -219,9 +220,7 @@ export async function loadAdvisorRecommendations(locale: Locale, limit = 6): Pro
 
   const externalRecommendations: AdvisorRecommendation[] = [...externalByIdentity.values()].map((row) => {
     const gap = externalGap(row, gaps);
-    const competencyName = gap?.competencies?.name
-      ?? stringMetadata(row.metadata, "competency_name")
-      ?? "Role capability";
+    const competencyName = gap?.competencies?.name || stringMetadata(row.metadata, "competency_name") || "Role capability";
     const alreadyTrained = Boolean(priorTraining && normalizedText(competencyName).split(" ").some((term) => term.length > 3 && priorTraining.includes(term)));
     const breakdown = buildBreakdown({ gap, hasAssignment, hasDepartment, alreadyTrained, external: true });
     const score = weightedScore(breakdown);
