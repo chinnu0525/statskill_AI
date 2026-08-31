@@ -1,0 +1,314 @@
+:root {
+  --lovable-navy: #0b2545;
+  --lovable-navy-deep: #06182d;
+  --lovable-saffron: #ea580c;
+  --lovable-green: #047857;
+  --lovable-surface: #ffffff;
+  --lovable-soft: #f5f8fb;
+  --lovable-line: #d8e2ec;
+}
+
+/* Lovable is a visual source only. This layer does not change auth, data, or service boundaries. */
+.govStrip {
+  position: relative;
+  background: var(--lovable-navy-deep);
+  border-bottom: 3px solid transparent;
+  border-image: linear-gradient(90deg, #ff9933 0 33.333%, #fff 33.333% 66.666%, #138808 66.666% 100%) 1;
+}
+
+.portalHeader {
+  min-height: 70px;
+  background: rgba(255, 255, 255, .96);
+  box-shadow: 0 1px 0 rgba(11, 37, 69, .05);
+}
+
+.highContrast .portalHeader { background: rgba(0, 0, 0, .97); }
+
+.brandMark {
+  border-radius: 10px;
+  background: linear-gradient(145deg, var(--lovable-navy) 0 72%, var(--lovable-saffron) 72%);
+  box-shadow: 0 8px 24px rgba(11, 37, 69, .16);
+}
+
+.portalBrand strong { letter-spacing: -.025em; }
+.portalBrand em { color: var(--lovable-saffron); }
+
+/* Production navigation stays bound to the authenticated role. */
+.demoRoleSwitcher { display: none !important; }
+
+.portalNav {
+  padding-top: 6px;
+  padding-bottom: 6px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, .035);
+}
+
+.portalNav button {
+  position: relative;
+  padding: 9px 12px;
+  border-radius: 7px;
+}
+
+.portalNav button.active {
+  background: #edf3f9;
+  box-shadow: inset 0 -2px 0 var(--lovable-saffron);
+}
+
+.portalMain { max-width: 1500px; }
+
+.heroPanel {
+  position: relative;
+  isolation: isolate;
+  border: 1px solid rgba(255, 255, 255, .08);
+  background:
+    radial-gradient(circle at 84% 14%, rgba(59, 130, 246, .22), transparent 28%),
+    radial-gradient(circle at 72% 82%, rgba(5, 150, 105, .16), transparent 28%),
+    linear-gradient(145deg, #06182d 0%, #0b2545 62%, #12355f 100%);
+  box-shadow: 0 24px 70px rgba(7, 24, 44, .19);
+}
+
+.heroPanel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: linear-gradient(to left, #000, transparent 70%);
+}
+
+.heroBadge {
+  border-color: rgba(253, 186, 116, .34);
+  background: rgba(234, 88, 12, .1);
+  color: #fed7aa;
+}
+
+.heroActions button {
+  transition: transform .16s ease, background-color .16s ease, border-color .16s ease;
+}
+.heroActions button:hover { transform: translateY(-1px); }
+.saffronButton { background: var(--lovable-saffron); border-color: #fb923c; }
+
+.loopCard {
+  border-color: rgba(255, 255, 255, .15);
+  background: rgba(255, 255, 255, .055);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
+}
+
+.loopCard > div {
+  background: rgba(6, 24, 45, .54);
+  transition: border-color .15s ease, background .15s ease;
+}
+.loopCard > div:hover {
+  border-color: rgba(253, 186, 116, .28);
+  background: rgba(6, 24, 45, .7);
+}
+
+.portalStatCard,
+.portalCard,
+.workflowGrid article,
+.featureGrid article,
+.roadmap article,
+.reportGrid article {
+  border-color: var(--lovable-line);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, .045);
+  transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+.portalStatCard:hover,
+.featureGrid article:hover,
+.reportGrid article:hover {
+  border-color: #c6d4e2;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, .07);
+  transform: translateY(-1px);
+}
+
+.portalStatCard > strong,
+.sectionHeading h2,
+.pageIntro h1,
+.welcomePanel h1,
+.cardHeading h2,
+.portalCard > h2,
+.domainHeader h2,
+.recommendationCard h2,
+.catalogGrid h2,
+.reportGrid h2 {
+  color: var(--lovable-navy);
+}
+
+.welcomePanel {
+  border-left-color: var(--lovable-saffron);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, .04);
+}
+
+.noticePanel {
+  border-color: #fed7aa;
+  background: #fff8ef;
+}
+
+.syncBanner {
+  border-color: #a7f3d0;
+  background: #f0fdf4;
+}
+
+.floatingAssistant {
+  border-color: #fb923c;
+  background: var(--lovable-navy);
+  box-shadow: 0 16px 40px rgba(7, 24, 44, .27);
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+.floatingAssistant:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 48px rgba(7, 24, 44, .31);
+}
+
+.assistantDrawer {
+  border-radius: 18px;
+  box-shadow: 0 28px 80px rgba(7, 24, 44, .28);
+}
+
+.portalFooter {
+  margin-top: 48px;
+  border-top: 3px solid transparent;
+  border-image: linear-gradient(90deg, #ff9933 0 33.333%, #fff 33.333% 66.666%, #138808 66.666% 100%) 1;
+  background: var(--lovable-navy-deep);
+}
+
+/* Signed-out experience: same national-portal visual language, same real Supabase auth form. */
+.publicAuthPage {
+  background: #f4f7fa;
+}
+
+.authStory {
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 18% 20%, rgba(59,130,246,.2), transparent 30%),
+    radial-gradient(circle at 78% 82%, rgba(5,150,105,.16), transparent 32%),
+    linear-gradient(145deg, #06182d, #0b2545 68%, #12355f);
+}
+
+.authStory::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+  background-size: 34px 34px;
+  mask-image: linear-gradient(120deg, #000, transparent 82%);
+  pointer-events: none;
+}
+
+.authIdentity > span {
+  border-radius: 10px;
+  background: linear-gradient(145deg, #143d69 0 72%, var(--lovable-saffron) 72%);
+  box-shadow: 0 10px 28px rgba(0,0,0,.17);
+}
+
+.authStoryCopy > span,
+.authGovLabel { color: #fed7aa; }
+
+.authFeatureList > div {
+  backdrop-filter: blur(8px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.035);
+}
+
+.authPortalPanel {
+  box-shadow: -20px 0 70px rgba(7,24,44,.08);
+}
+
+.authPanelTop h1 { color: var(--lovable-navy); }
+
+.authFormGrid input,
+.authFormGrid textarea,
+.authPanelTop select {
+  min-height: 42px;
+}
+
+.authFormGrid input:hover,
+.authFormGrid textarea:hover,
+.authPanelTop select:hover { border-color: #c4d1df; }
+
+.portalAuthSubmit {
+  min-height: 46px;
+  background: var(--lovable-navy);
+  border-color: var(--lovable-navy);
+  box-shadow: 0 8px 22px rgba(11,37,69,.13);
+}
+.portalAuthSubmit:hover:not(:disabled) { background: #123b68; }
+
+.languageGate {
+  background:
+    radial-gradient(circle at 20% 18%, rgba(37,99,235,.09), transparent 24%),
+    linear-gradient(180deg, #f8fafc, #eef3f8);
+}
+
+.nationalLanguageCard {
+  border-top: 0;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 28px 80px rgba(7,24,44,.14);
+}
+
+.nationalLanguageCard::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: linear-gradient(90deg, #ff9933 0 33.333%, #fff 33.333% 66.666%, #138808 66.666% 100%);
+}
+
+.nationalPortal button,
+.nationalPortal select,
+.nationalPortal input,
+.nationalPortal textarea {
+  transition: outline-color .12s ease, box-shadow .12s ease, border-color .12s ease;
+}
+
+.nationalPortal button:focus-visible,
+.nationalPortal select:focus-visible,
+.nationalPortal input:focus-visible,
+.nationalPortal textarea:focus-visible,
+.publicAuthPage button:focus-visible,
+.publicAuthPage select:focus-visible,
+.publicAuthPage input:focus-visible,
+.publicAuthPage textarea:focus-visible,
+.languageGate button:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, .34);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heroActions button,
+  .portalStatCard,
+  .featureGrid article,
+  .reportGrid article,
+  .floatingAssistant {
+    transition: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .portalHeader { min-height: 62px; }
+  .portalNav.open {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    padding: 10px 16px 14px;
+  }
+  .portalNav.open button { text-align: left; }
+  .heroPanel { border-radius: 18px; }
+  .authPortalPanel { box-shadow: none; }
+}
+
+@media (max-width: 640px) {
+  .govStrip { border-bottom-width: 2px; }
+  .portalNav.open { grid-template-columns: 1fr; }
+  .heroPanel { border-radius: 16px; }
+  .portalFooter { margin-top: 32px; }
+  .floatingAssistant span { display: none; }
+  .floatingAssistant { width: 48px; height: 48px; padding: 0; display: grid; place-items: center; }
+}
