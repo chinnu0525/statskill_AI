@@ -12,12 +12,14 @@ export type RecommendationBreakdown = {
 
 export type AdvisorRecommendation = {
   id: string;
+  kind: "COURSE" | "EXTERNAL";
   title: string;
   sourceSystem: string;
   competencyName: string;
   score: number;
   reason: string;
   isMock: boolean;
+  isEnrolled: boolean;
   url: string | null;
   breakdown: RecommendationBreakdown;
 };
@@ -187,11 +189,13 @@ export async function loadAdvisorRecommendations(locale: Locale, limit = 6): Pro
   const localRecommendations: AdvisorRecommendation[] = courses.map((course) => {
     const gap = gaps.find((item) => item.competency_id === course.competency_id);
     const competencyName = course.competencies?.name ?? "Role capability";
-    const alreadyTrained = enrolledIds.has(course.id) || (priorTraining && normalizedText(competencyName).split(" ").some((term) => term.length > 3 && priorTraining.includes(term)));
-    const breakdown = buildBreakdown({ gap, hasAssignment, hasDepartment, alreadyTrained: Boolean(alreadyTrained), external: false });
+    const isEnrolled = enrolledIds.has(course.id);
+    const alreadyTrained = isEnrolled || Boolean(priorTraining && normalizedText(competencyName).split(" ").some((term) => term.length > 3 && priorTraining.includes(term)));
+    const breakdown = buildBreakdown({ gap, hasAssignment, hasDepartment, alreadyTrained, external: false });
     const score = weightedScore(breakdown);
     return {
       id: course.id,
+      kind: "COURSE",
       title: localizationTitle(course.course_localizations, locale),
       sourceSystem: course.source_system,
       competencyName,
@@ -200,6 +204,7 @@ export async function loadAdvisorRecommendations(locale: Locale, limit = 6): Pro
         ? `Addresses your ${gap.priority.toLowerCase()}-priority ${competencyName} gap (${Math.round(Number(gap.gap_score))} points).`
         : `Relevant to ${competencyName} for your current role profile.`,
       isMock: isMockSource(course.source_system),
+      isEnrolled,
       url: null,
       breakdown,
     };
@@ -222,6 +227,7 @@ export async function loadAdvisorRecommendations(locale: Locale, limit = 6): Pro
     const score = weightedScore(breakdown);
     return {
       id: row.id,
+      kind: "EXTERNAL",
       title: row.title,
       sourceSystem: row.source_system,
       competencyName,
@@ -230,6 +236,7 @@ export async function loadAdvisorRecommendations(locale: Locale, limit = 6): Pro
         ? `Mapped to your ${gap.priority.toLowerCase()}-priority ${competencyName} gap (${Math.round(Number(gap.gap_score))} points).`
         : `Catalog item relevant to the current role profile; no measured matching gap was found.`,
       isMock: isMockSource(row.source_system),
+      isEnrolled: false,
       url: row.url,
       breakdown,
     };
@@ -238,4 +245,23 @@ export async function loadAdvisorRecommendations(locale: Locale, limit = 6): Pro
   return [...localRecommendations, ...externalRecommendations]
     .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title))
     .slice(0, Math.max(1, Math.min(limit, 12)));
+}
+
+export async function enrollLocalRecommendation(courseId: string) {
+  const supabase = createClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error("AUTH_REQUIRED");
+
+  const { error } = await supabase.from("learning_enrollments").upsert(
+    {
+      user_id: authData.user.id,
+      course_id: courseId,
+      progress: 0,
+      status: "NOT_STARTED",
+      started_at: null,
+      completed_at: null,
+    },
+    { onConflict: "user_id,course_id", ignoreDuplicates: true },
+  );
+  if (error) throw error;
 }
