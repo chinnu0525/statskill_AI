@@ -38,7 +38,11 @@ type Props = {
   superAdminNode?: ReactNode;
 };
 
-const navConfig: Array<{ id: PortalView; key: "home" | "dashboard" | "framework" | "assessment" | "advisor" | "learningPath" | "igot" | "generator" | "trainerHub" | "workforceAnalytics" | "systemConsole" | "reports" | "profile"; roles: PortalRole[] | "all" }> = [
+const navConfig: Array<{
+  id: PortalView;
+  key: "home" | "dashboard" | "framework" | "assessment" | "advisor" | "learningPath" | "igot" | "generator" | "trainerHub" | "workforceAnalytics" | "systemConsole" | "reports" | "profile";
+  roles: PortalRole[] | "all";
+}> = [
   { id: "home", key: "home", roles: "all" },
   { id: "dashboard", key: "dashboard", roles: ["learner"] },
   { id: "framework", key: "framework", roles: "all" },
@@ -86,10 +90,6 @@ function Pill({ priority }: { priority: string }) {
   return <span className={`pill ${p === "HIGH" || p === "CRITICAL" ? "danger" : p === "MEDIUM" ? "warning" : "neutral"}`}>{p}</span>;
 }
 
-function Radar() {
-  return <div className="radarWrap"><svg viewBox="0 0 320 260" role="img" aria-label="Illustrative competency radar"><g fill="none" stroke="currentColor" opacity=".18"><polygon points="160,25 270,90 230,220 90,220 50,90"/><polygon points="160,58 238,105 210,194 110,194 82,105"/><polygon points="160,90 205,120 190,168 130,168 115,120"/></g><polygon points="160,46 250,104 212,204 108,185 72,106" fill="rgba(249,115,22,.11)" stroke="#f97316" strokeWidth="2"/><polygon points="160,73 220,117 190,178 122,162 94,120" fill="rgba(37,99,235,.15)" stroke="#2563eb" strokeWidth="3"/></svg></div>;
-}
-
 export function PortalExperience(props: Props) {
   const t = portalMessages[props.locale];
   const role = initialRole(props.actualRole);
@@ -100,7 +100,10 @@ export function PortalExperience(props: Props) {
   const [assistantOpen, setAssistantOpen] = useState(false);
   const nav = useMemo(() => navConfig.filter((item) => item.roles === "all" || item.roles.includes(role)), [role]);
   const firstName = props.fullName?.split(" ")[0] || t.learner;
-  const learningProgress = props.courses.length ? `${Math.round(props.courses.reduce((sum, course) => sum + course.progress, 0) / props.courses.length)}%` : t.unavailable;
+  const learningProgress = props.courses.length
+    ? `${Math.round(props.courses.reduce((sum, course) => sum + course.progress, 0) / props.courses.length)}%`
+    : t.unavailable;
+  const highPriorityGaps = props.gaps.filter((gap) => gap.priority.toUpperCase() === "HIGH" || gap.priority.toUpperCase() === "CRITICAL").length;
 
   function go(next: PortalView) {
     const allowed = navConfig.find((item) => item.id === next);
@@ -113,30 +116,102 @@ export function PortalExperience(props: Props) {
   return <div className={`nationalPortal fontLevel${fontLevel} ${contrast ? "highContrast" : ""}`}>
     <div className="govStrip">
       <div><strong>{t.government}</strong><span>{t.ministry}</span></div>
-      <div className="govTools"><span>{t.font}</span><button onClick={() => setFontLevel(0)} type="button">A−</button><button onClick={() => setFontLevel(1)} type="button">A</button><button onClick={() => setFontLevel(2)} type="button">A+</button><button onClick={() => setContrast((value) => !value)} type="button">◐ {t.contrast}</button><select value={props.locale} onChange={(event) => props.onLocaleChange(event.target.value as Locale)} aria-label={t.language}>{(["en", "hi", "te"] as Locale[]).map((locale) => <option key={locale} value={locale}>{props.localeLabels[locale]}</option>)}</select></div>
+      <div className="govTools">
+        <span>{t.font}</span>
+        <button onClick={() => setFontLevel(0)} type="button">A−</button>
+        <button onClick={() => setFontLevel(1)} type="button">A</button>
+        <button onClick={() => setFontLevel(2)} type="button">A+</button>
+        <button onClick={() => setContrast((value) => !value)} type="button">◐ {t.contrast}</button>
+        <select value={props.locale} onChange={(event) => props.onLocaleChange(event.target.value as Locale)} aria-label={t.language}>
+          {(["en", "hi", "te"] as Locale[]).map((locale) => <option key={locale} value={locale}>{props.localeLabels[locale]}</option>)}
+        </select>
+      </div>
     </div>
 
     <header className="portalHeader">
-      <button className="portalBrand" onClick={() => go("home")} type="button"><span className="brandMark">SA</span><span><strong>StatSkill <em>AI</em></strong><small>{t.portalSubtitle}</small></span></button>
-      <div className="headerActions"><button className="iconButton" type="button" aria-label="Notifications">🔔</button><button className="profileChip" type="button" onClick={() => go("profile")}><span>{firstName.slice(0, 1).toUpperCase()}</span><div><strong>{props.fullName || t.learner}</strong><small>{props.actualRole || "OFFICIAL"}</small></div></button><button className="headerSignOut" type="button" onClick={props.onSignOut}>{t.signOut}</button><button className="menuButton" type="button" aria-expanded={mobileOpen} onClick={() => setMobileOpen((value) => !value)}>☰</button></div>
+      <button className="portalBrand" onClick={() => go("home")} type="button">
+        <span className="brandMark">SA</span>
+        <span><strong>StatSkill <em>AI</em></strong><small>{t.portalSubtitle}</small></span>
+      </button>
+      <div className="headerActions">
+        <button className="iconButton" type="button" aria-label="Notifications">🔔</button>
+        <button className="profileChip" type="button" onClick={() => go("profile")}>
+          <span>{firstName.slice(0, 1).toUpperCase()}</span>
+          <div><strong>{props.fullName || t.learner}</strong><small>{props.actualRole || "OFFICIAL"}</small></div>
+        </button>
+        <button className="headerSignOut" type="button" onClick={props.onSignOut}>{t.signOut}</button>
+        <button className="menuButton" type="button" aria-expanded={mobileOpen} onClick={() => setMobileOpen((value) => !value)}>☰</button>
+      </div>
     </header>
 
-    <nav className={`portalNav ${mobileOpen ? "open" : ""}`}>{nav.map((item) => <button key={item.id} type="button" className={view === item.id ? "active" : ""} onClick={() => go(item.id)}>{t[item.key]}</button>)}</nav>
+    <nav className={`portalNav ${mobileOpen ? "open" : ""}`}>
+      {nav.map((item) => <button key={item.id} type="button" className={view === item.id ? "active" : ""} onClick={() => go(item.id)}>{t[item.key]}</button>)}
+    </nav>
 
     <main className="portalMain">
       {view === "home" && <div className="portalStack">
-        <section className="heroPanel"><div className="heroCopy"><span className="heroBadge">{t.homeBadge}</span><h1>{t.homeTitle}</h1><p>{t.homeText}</p><div className="heroActions">{role === "learner" && <button className="saffronButton" onClick={() => go("assessment")} type="button">{t.assessSkills}</button>}<button className="ghostLightButton" onClick={() => go(role === "learner" ? "advisor" : "igot")} type="button">{t.exploreLearning}</button><button className="ghostLightButton" onClick={() => go("generator")} type="button">{t.aiGenerator}</button></div></div><div className="loopCard"><span>{t.loopTitle}</span>{t.loopSteps.map((step, index) => <div key={step}><b>{index + 1}</b><p>{step}</p>{index < 5 && <i>→</i>}</div>)}</div></section>
-        <DemoBanner text={t.demoNotice}/>
-        <section className="metricGrid"><StatCard label={t.competencyDomains} value="10+" note={t.illustrativeMetric}/><StatCard label={t.skillsMapped} value="100+" note={t.illustrativeMetric}/><StatCard label={t.learningCatalog} value="2,486+" note={t.illustrativeMetric}/><StatCard label={t.activeOfficials} value="12,480+" note={t.illustrativeMetric}/><StatCard label={t.groundedAssessment} value="98.4%" note={t.illustrativeMetric}/><StatCard label={t.averageGain} value="+6.2%" note={t.illustrativeMetric}/></section>
-        <section className="sectionBlock"><div className="sectionHeading"><span>{t.howBadge}</span><h2>{t.howTitle}</h2><p>{t.howText}</p></div><div className="workflowGrid">{t.workflow.map(([title, text], index) => <article key={title}><span>0{index + 1}</span><h3>{title}</h3><p>{text}</p></article>)}</div></section>
+        <section className="heroPanel">
+          <div className="heroCopy">
+            <span className="heroBadge">{t.homeBadge}</span>
+            <h1>{t.homeTitle}</h1>
+            <p>{t.homeText}</p>
+            <div className="heroActions">
+              {role === "learner" && <button className="saffronButton" onClick={() => go("assessment")} type="button">{t.assessSkills}</button>}
+              <button className="ghostLightButton" onClick={() => go(role === "learner" ? "advisor" : "igot")} type="button">{t.exploreLearning}</button>
+              <button className="ghostLightButton" onClick={() => go("generator")} type="button">{t.aiGenerator}</button>
+            </div>
+          </div>
+          <div className="loopCard">
+            <span>{t.loopTitle}</span>
+            {t.loopSteps.map((step, index) => <div key={step}><b>{index + 1}</b><p>{step}</p>{index < 5 && <i>→</i>}</div>)}
+          </div>
+        </section>
+
+        {role === "learner" && <section className="metricGrid five">
+          <StatCard label={t.overallCompetency} value={`${props.competencyScore}%`} note={t.measuredCapability}/>
+          <StatCard label={t.skillGaps} value={props.gaps.length} note={props.gaps.length ? `${highPriorityGaps} HIGH / CRITICAL` : t.noMeasuredGaps}/>
+          <StatCard label={t.learningProgress} value={learningProgress} note={props.courses.length ? `${props.courses.length} items` : t.noLearningItems}/>
+          <StatCard label={t.learningHours} value={props.learningHours ?? "—"} note={props.learningHours === undefined ? t.unavailable : t.measuredCapability}/>
+          <StatCard label={t.assessments} value={props.assessmentsCompleted ?? "—"} note={props.assessmentsCompleted === undefined ? t.unavailable : t.measuredCapability}/>
+        </section>}
+
+        <section className="sectionBlock">
+          <div className="sectionHeading"><span>{t.howBadge}</span><h2>{t.howTitle}</h2><p>{t.howText}</p></div>
+          <div className="workflowGrid">{t.workflow.map(([title, text], index) => <article key={title}><span>0{index + 1}</span><h3>{title}</h3><p>{text}</p></article>)}</div>
+        </section>
         <section className="featureGrid">{t.featureNames.map((name) => <article key={name}><strong>{name}</strong><p>{t.featureText}</p></article>)}</section>
       </div>}
 
       {view === "dashboard" && <div className="portalStack">
-        <section className="welcomePanel"><div><span>{t.dashboardBadge}</span><h1>{t.goodMorning}, {firstName}</h1><p>{t.dashboardText}</p></div><div><button type="button" onClick={() => go("assessment")}>{t.takeAssessment}</button><button type="button" onClick={() => go("advisor")}>{t.learningAdvisor}</button></div></section>
-        <section className="metricGrid five"><StatCard label={t.overallCompetency} value={`${props.competencyScore}%`} note={t.measuredCapability}/><StatCard label={t.skillGaps} value={props.gaps.length} note={props.gaps.length ? `${props.gaps.filter((gap) => gap.priority === "HIGH").length} HIGH` : t.noMeasuredGaps}/><StatCard label={t.learningProgress} value={learningProgress} note={props.courses.length ? `${props.courses.length} items` : t.noLearningItems}/><StatCard label={t.learningHours} value={props.learningHours ?? "—"} note={props.learningHours === undefined ? t.unavailable : t.measuredCapability}/><StatCard label={t.assessments} value={props.assessmentsCompleted ?? "—"} note={props.assessmentsCompleted === undefined ? t.unavailable : t.measuredCapability}/></section>
-        <section className="dashboardSplit"><article className="portalCard"><div className="cardHeading"><h2>{t.competencyRadar}</h2><span>{t.currentVsRequired}</span></div><Radar/></article><article className="portalCard"><div className="cardHeading"><h2>{t.priorityGaps}</h2>{props.gaps.length > 0 && <button type="button" onClick={() => go("advisor")}>{t.bridgeGaps}</button>}</div>{props.gaps.length ? <div className="gapList">{props.gaps.map((gap) => <div key={gap.name}><div><strong>{gap.name}</strong><small>{t.measuredCapability}</small></div><Pill priority={gap.priority}/><button type="button" onClick={() => go("advisor")}>{t.viewPath}</button></div>)}</div> : <Empty text={t.noMeasuredGaps}/>}</article></section>
-        <section className="dashboardSplit"><article className="portalCard"><div className="cardHeading"><h2>{t.recommendedLearning}</h2>{props.courses.length > 0 && <button type="button" onClick={() => go("learning")}>{t.fullRoadmap}</button>}</div>{props.courses.length ? props.courses.map((course) => <div className="courseRow" key={course.id}><div><strong>{course.title}</strong><div className="miniProgress"><span style={{ width: `${course.progress}%` }}/></div></div><b>{course.progress}%</b></div>) : <Empty text={t.noLearningItems}/>}</article><article className="portalCard">{props.latestInsightNode}</article></section>
+        <section className="welcomePanel">
+          <div><span>{t.dashboardBadge}</span><h1>{t.goodMorning}, {firstName}</h1><p>{t.dashboardText}</p></div>
+          <div><button type="button" onClick={() => go("assessment")}>{t.takeAssessment}</button><button type="button" onClick={() => go("advisor")}>{t.learningAdvisor}</button></div>
+        </section>
+        <section className="metricGrid five">
+          <StatCard label={t.overallCompetency} value={`${props.competencyScore}%`} note={t.measuredCapability}/>
+          <StatCard label={t.skillGaps} value={props.gaps.length} note={props.gaps.length ? `${highPriorityGaps} HIGH / CRITICAL` : t.noMeasuredGaps}/>
+          <StatCard label={t.learningProgress} value={learningProgress} note={props.courses.length ? `${props.courses.length} items` : t.noLearningItems}/>
+          <StatCard label={t.learningHours} value={props.learningHours ?? "—"} note={props.learningHours === undefined ? t.unavailable : t.measuredCapability}/>
+          <StatCard label={t.assessments} value={props.assessmentsCompleted ?? "—"} note={props.assessmentsCompleted === undefined ? t.unavailable : t.measuredCapability}/>
+        </section>
+        <section className="dashboardSplit">
+          <article className="portalCard">
+            <div className="cardHeading"><h2>{t.overallCompetency}</h2><span>{t.measuredCapability}</span></div>
+            <div className="profileScore"><strong>{props.competencyScore}%</strong><span>{props.gaps.length ? `${props.gaps.length} ${t.skillGaps.toLowerCase()}` : t.noMeasuredGaps}</span></div>
+            <div className="miniProgress" aria-label={`${t.overallCompetency}: ${props.competencyScore}%`}><span style={{ width: `${Math.max(0, Math.min(100, props.competencyScore))}%` }}/></div>
+          </article>
+          <article className="portalCard">
+            <div className="cardHeading"><h2>{t.priorityGaps}</h2>{props.gaps.length > 0 && <button type="button" onClick={() => go("advisor")}>{t.bridgeGaps}</button>}</div>
+            {props.gaps.length ? <div className="gapList">{props.gaps.map((gap) => <div key={gap.name}><div><strong>{gap.name}</strong><small>{t.measuredCapability}</small></div><Pill priority={gap.priority}/><button type="button" onClick={() => go("advisor")}>{t.viewPath}</button></div>)}</div> : <Empty text={t.noMeasuredGaps}/>} 
+          </article>
+        </section>
+        <section className="dashboardSplit">
+          <article className="portalCard">
+            <div className="cardHeading"><h2>{t.recommendedLearning}</h2>{props.courses.length > 0 && <button type="button" onClick={() => go("learning")}>{t.fullRoadmap}</button>}</div>
+            {props.courses.length ? props.courses.map((course) => <div className="courseRow" key={course.id}><div><strong>{course.title}</strong><div className="miniProgress"><span style={{ width: `${course.progress}%` }}/></div></div><b>{course.progress}%</b></div>) : <Empty text={t.noLearningItems}/>} 
+          </article>
+          <article className="portalCard">{props.latestInsightNode}</article>
+        </section>
       </div>}
 
       {view === "framework" && <div className="portalStack"><section className="pageIntro"><span>{t.frameworkBadge}</span><h1>{t.frameworkTitle}</h1><p>{t.frameworkText}</p></section>{props.frameworkNode}</div>}
