@@ -34,6 +34,8 @@ type Props = {
   profileNode: ReactNode;
   latestInsightNode: ReactNode;
   adminNode?: ReactNode;
+  trainerNode?: ReactNode;
+  superAdminNode?: ReactNode;
 };
 
 const navConfig: Array<{ id: PortalView; key: "home" | "dashboard" | "framework" | "assessment" | "advisor" | "learningPath" | "igot" | "generator" | "trainerHub" | "workforceAnalytics" | "systemConsole" | "reports" | "profile"; roles: PortalRole[] | "all" }> = [
@@ -111,12 +113,12 @@ export function PortalExperience(props: Props) {
   return <div className={`nationalPortal fontLevel${fontLevel} ${contrast ? "highContrast" : ""}`}>
     <div className="govStrip">
       <div><strong>{t.government}</strong><span>{t.ministry}</span></div>
-      <div className="govTools"><span>{t.font}</span><button onClick={() => setFontLevel(0)} type="button">A−</button><button onClick={() => setFontLevel(1)} type="button">A</button><button onClick={() => setFontLevel(2)} type="button">A+</button><button onClick={() => setContrast((v) => !v)} type="button">◐ {t.contrast}</button><select value={props.locale} onChange={(e) => props.onLocaleChange(e.target.value as Locale)} aria-label={t.language}>{(["en", "hi", "te"] as Locale[]).map((locale) => <option key={locale} value={locale}>{props.localeLabels[locale]}</option>)}</select></div>
+      <div className="govTools"><span>{t.font}</span><button onClick={() => setFontLevel(0)} type="button">A−</button><button onClick={() => setFontLevel(1)} type="button">A</button><button onClick={() => setFontLevel(2)} type="button">A+</button><button onClick={() => setContrast((value) => !value)} type="button">◐ {t.contrast}</button><select value={props.locale} onChange={(event) => props.onLocaleChange(event.target.value as Locale)} aria-label={t.language}>{(["en", "hi", "te"] as Locale[]).map((locale) => <option key={locale} value={locale}>{props.localeLabels[locale]}</option>)}</select></div>
     </div>
 
     <header className="portalHeader">
       <button className="portalBrand" onClick={() => go("home")} type="button"><span className="brandMark">SA</span><span><strong>StatSkill <em>AI</em></strong><small>{t.portalSubtitle}</small></span></button>
-      <div className="headerActions"><button className="iconButton" type="button" aria-label="Notifications">🔔</button><button className="profileChip" type="button" onClick={() => go("profile")}><span>{firstName.slice(0, 1).toUpperCase()}</span><div><strong>{props.fullName || t.learner}</strong><small>{props.actualRole || "OFFICIAL"}</small></div></button><button className="headerSignOut" type="button" onClick={props.onSignOut}>{t.signOut}</button><button className="menuButton" type="button" aria-expanded={mobileOpen} onClick={() => setMobileOpen((v) => !v)}>☰</button></div>
+      <div className="headerActions"><button className="iconButton" type="button" aria-label="Notifications">🔔</button><button className="profileChip" type="button" onClick={() => go("profile")}><span>{firstName.slice(0, 1).toUpperCase()}</span><div><strong>{props.fullName || t.learner}</strong><small>{props.actualRole || "OFFICIAL"}</small></div></button><button className="headerSignOut" type="button" onClick={props.onSignOut}>{t.signOut}</button><button className="menuButton" type="button" aria-expanded={mobileOpen} onClick={() => setMobileOpen((value) => !value)}>☰</button></div>
     </header>
 
     <nav className={`portalNav ${mobileOpen ? "open" : ""}`}>{nav.map((item) => <button key={item.id} type="button" className={view === item.id ? "active" : ""} onClick={() => go(item.id)}>{t[item.key]}</button>)}</nav>
@@ -143,15 +145,10 @@ export function PortalExperience(props: Props) {
       {view === "learning" && <div className="portalStack"><section className="pageIntro"><span>{t.learningBadge}</span><h1>{t.learningTitle}</h1><p>{t.learningText}</p></section><LearningPathPanel locale={props.locale}/></div>}
       {view === "igot" && <div className="portalStack"><section className="pageIntro"><span>{t.igotBadge}</span><h1>{t.igotTitle}</h1><p>{t.igotText}</p></section><ExternalCatalogPanel locale={props.locale}/></div>}
       {view === "generator" && <div className="portalStack"><section className="pageIntro"><span>{t.generatorBadge}</span><h1>{t.generatorTitle}</h1><p>{t.generatorText}</p></section><section className="pipeline">{t.pipeline.map((step, index) => <span key={step}>{index + 1} {step}</span>)}</section>{props.materialsNode}{props.sourceNode}{props.aiNode}</div>}
-
-      {view === "trainer" && <div className="portalStack"><section className="pageIntro"><span>{t.trainerBadge}</span><h1>{t.trainerTitle}</h1><p>{t.trainerText}</p></section><DemoBanner text={t.trainerDemo}/><section className="metricGrid"><StatCard label="Pending QA" value="18" note={t.demoNotice}/><StatCard label="Approved" value="42" note={t.demoNotice}/><StatCard label="Cohorts" value="6" note={t.demoNotice}/><StatCard label="Weak topics" value="9" note={t.demoNotice}/></section><section className="portalCard"><h2>{t.trainerHub}</h2>{["Sampling frame bias", "CPI elementary aggregates", "Metadata quality checks"].map((item, index) => <div className="reviewRow" key={item}><div><strong>{item}</strong><small>DEMO · Source S{index + 1}</small></div><Pill priority={index === 0 ? "HIGH" : "MEDIUM"}/></div>)}</section></div>}
-
-      {view === "admin" && <div className="portalStack"><section className="pageIntro"><span>{t.adminBadge}</span><h1>{t.adminTitle}</h1><p>{t.adminText}</p></section>{props.adminNode || <DemoBanner text={t.adminUnavailable}/>}<DemoBanner text={t.demoNotice}/><section className="dashboardSplit"><article className="portalCard"><h2>Department heatmap · DEMO</h2><div className="heatmap">{["NSO Survey", "National Accounts", "Price Statistics", "Field Operations", "Data Innovation"].map((department, row) => <div key={department}><span>{department}</span>{[1, 2, 3, 4, 5].map((column) => <i key={column} style={{ opacity: .25 + (((row + column) % 5) * .16) }}/>)}</div>)}</div></article><article className="portalCard"><h2>Future skills · DEMO</h2>{[["AI / ML", 86], ["Cloud & APIs", 78], ["Geospatial analytics", 73]].map(([skill, value]) => <div className="barRow" key={String(skill)}><span>{skill}</span><div><i style={{ width: `${value}%` }}/></div><b>{value}</b></div>)}</article></section></div>}
-
-      {view === "superadmin" && <div className="portalStack"><section className="pageIntro"><span>{t.superBadge}</span><h1>{t.superTitle}</h1><p>{t.superText}</p></section><DemoBanner text={t.demoNotice}/><section className="portalCard">{["Supabase Auth + RLS", "Private learning-material storage", "JWT assessment scorer", "iGOT adapter (MOCK)", "NSSTA adapter (MOCK)", "Audit event stream"].map((item, index) => <div className="systemRow" key={item}><span>{item}</span><b className={index < 3 || index === 5 ? "ok" : "mock"}>{index < 3 || index === 5 ? "Operational" : "MOCK"}</b></div>)}</section></div>}
-
+      {view === "trainer" && <div className="portalStack"><section className="pageIntro"><span>{t.trainerBadge}</span><h1>{t.trainerTitle}</h1><p>{t.trainerText}</p></section>{props.trainerNode || <DemoBanner text={t.trainerDemo}/>}</div>}
+      {view === "admin" && <div className="portalStack"><section className="pageIntro"><span>{t.adminBadge}</span><h1>{t.adminTitle}</h1><p>{t.adminText}</p></section>{props.adminNode || <DemoBanner text={t.adminUnavailable}/>}</div>}
+      {view === "superadmin" && <div className="portalStack"><section className="pageIntro"><span>{t.superBadge}</span><h1>{t.superTitle}</h1><p>{t.superText}</p></section>{props.superAdminNode || <DemoBanner text={t.adminUnavailable}/>}</div>}
       {view === "reports" && <div className="portalStack"><section className="pageIntro"><span>{t.reportsBadge}</span><h1>{t.reportsTitle}</h1><p>{t.reportsText}</p></section>{props.reportsNode}</div>}
-
       {view === "profile" && <div className="portalStack"><section className="pageIntro profileIntro"><div className="profileAvatar">{firstName.slice(0, 1).toUpperCase()}</div><div><span>{t.profileBadge}</span><h1>{props.fullName || t.learner}</h1><p>{t.profileText}</p></div></section>{props.profileNode}<section className="metricGrid"><StatCard label={t.overallCompetency} value={`${props.competencyScore}%`} note={t.measuredCapability}/><StatCard label={t.skillGaps} value={props.gaps.length} note={t.measuredCapability}/><StatCard label={t.learningCatalog} value={props.courses.length} note={t.measuredCapability}/></section></div>}
     </main>
 
