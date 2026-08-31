@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Locale } from "../../src/i18n/messages";
 import {
   listAssessments,
@@ -12,11 +12,42 @@ import {
 } from "../../src/services/assessments";
 
 const DEFAULT_DURATION_SECONDS = 20 * 60;
+const SESSION_KEY = "statskill-assessment-session-v1";
+
+type SavedAssessmentSession = {
+  assessmentId: string;
+  answers: Record<string, string>;
+  marked: Record<string, boolean>;
+  currentIndex: number;
+  expiresAt: number;
+};
 
 function formatTime(totalSeconds: number) {
   const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
   const seconds = Math.max(totalSeconds % 60, 0).toString().padStart(2, "0");
   return `${minutes}:${seconds}`;
+}
+
+function readSavedSession(): SavedAssessmentSession | null {
+  try {
+    const raw = window.sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<SavedAssessmentSession>;
+    if (!parsed.assessmentId || typeof parsed.expiresAt !== "number") return null;
+    return {
+      assessmentId: parsed.assessmentId,
+      answers: parsed.answers ?? {},
+      marked: parsed.marked ?? {},
+      currentIndex: typeof parsed.currentIndex === "number" ? parsed.currentIndex : 0,
+      expiresAt: parsed.expiresAt,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function clearSavedSession() {
+  try { window.sessionStorage.removeItem(SESSION_KEY); } catch { /* storage unavailable */ }
 }
 
 export function AssessmentPanel({ locale, copy, onCompleted, refreshKey = 0, preferredAssessmentId = "" }: {
@@ -32,58 +63,102 @@ export function AssessmentPanel({ locale, copy, onCompleted, refreshKey = 0, pre
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [marked, setMarked] = useState<Record<string, boolean>>({});
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [expiresAt, setExpiresAt] = useState<number | null>(null);
   const [secondsRemaining, setSecondsRemaining] = useState(DEFAULT_DURATION_SECONDS);
   const [result, setResult] = useState<AssessmentResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const timeoutHandled = useRef(false);
 
   const currentQuestion = questions[currentIndex];
   const answeredCount = useMemo(() => questions.filter((question) => Boolean(answers[question.id])).length, [answers, questions]);
   const markedCount = useMemo(() => questions.filter((question) => marked[question.id]).length, [marked, questions]);
   const unansweredCount = questions.length - answeredCount;
+  const expired = questions.length > 0 && secondsRemaining <= 0;
 
   useEffect(() => {
+    let active = true;
     setQuestions([]);
     setAnswers({});
     setMarked({});
     setResult(null);
     setCurrentIndex(0);
+    setExpiresAt(null);
     setSecondsRemaining(DEFAULT_DURATION_SECONDS);
+    timeoutHandled.current = false;
+
+    const saved = readSavedSession();
     listAssessments(locale)
-      .then((items) => {
+      .then(async (items) => {
+        if (!active) return;
         setAssessments(items);
+        if (saved && items.some((item) => item.id === saved.assessmentId)) {
+          try {
+            const loaded = await loadAssessmentQuestions(saved.assessmentId);
+            if (!active) return;
+            setSelectedId(saved.assessmentId);
+            setQuestions(loaded);
+            setAnswers(saved.answers);
+            setMarked(saved.marked);
+            setCurrentIndex(Math.min(Math.max(saved.currentIndex, 0), Math.max(loaded.length - 1, 0)));
+            setExpiresAt(saved.expiresAt);
+            setSecondsRemaining(Math.max(0, Math.ceil((saved.expiresAt - Date.now()) / 1000)));
+            return;
+          } catch {
+            clearSavedSession();
+          }
+        }
         const preferred = preferredAssessmentId && items.some((item) => item.id === preferredAssessmentId)
           ? preferredAssessmentId
           : items[0]?.id ?? "";
         setSelectedId(preferred);
       })
       .catch(() => {
+        if (!active) return;
         setAssessments([]);
         setSelectedId("");
       });
+
+    return () => { active = false; };
   }, [locale, refreshKey, preferredAssessmentId]);
 
   useEffect(() => {
-    if (!questions.length || result || secondsRemaining <= 0) return;
-    const timer = window.setInterval(() => setSecondsRemaining((value) => Math.max(value - 1, 0)), 1000);
+    if (!questions.length || !expiresAt || result) return;
+    const updateRemaining = () => setSecondsRemaining(Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000)));
+    updateRemaining();
+    const timer = window.setInterval(updateRemaining, 1000);
     return () => window.clearInterval(timer);
-  }, [questions.length, result, secondsRemaining]);
+  }, [expiresAt, questions.length, result]);
 
   useEffect(() => {
-    if (questions.length && secondsRemaining === 0 && !result) setMessage(copy.timeExpired);
-  }, [copy.timeExpired, questions.length, result, secondsRemaining]);
+    if (!questions.length || !expiresAt) return;
+    try {
+      const saved: SavedAssessmentSession = { assessmentId: selectedId, answers, marked, currentIndex, expiresAt };
+      window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(saved));
+    } catch { /* storage unavailable; assessment still works in memory */ }
+  }, [answers, currentIndex, expiresAt, marked, questions.length, selectedId]);
+
+  useEffect(() => {
+    if (!expired || result || busy || timeoutHandled.current) return;
+    timeoutHandled.current = true;
+    setMessage(copy.timeExpiredSubmitting);
+    void finishAssessment({ timedOut: true });
+  }, [busy, copy.timeExpiredSubmitting, expired, result]);
 
   async function startAssessment() {
     if (!selectedId) return;
     setBusy(true);
     setMessage("");
     setResult(null);
+    timeoutHandled.current = false;
     try {
       const loaded = await loadAssessmentQuestions(selectedId);
+      const deadline = Date.now() + DEFAULT_DURATION_SECONDS * 1000;
       setQuestions(loaded);
       setAnswers({});
       setMarked({});
       setCurrentIndex(0);
+      setExpiresAt(deadline);
       setSecondsRemaining(DEFAULT_DURATION_SECONDS);
     } catch {
       setMessage(copy.assessmentLoadFailed);
@@ -93,11 +168,13 @@ export function AssessmentPanel({ locale, copy, onCompleted, refreshKey = 0, pre
   }
 
   function chooseAnswer(questionId: string, optionId: string) {
+    if (expired || busy) return;
     setAnswers((current) => ({ ...current, [questionId]: optionId }));
     setMessage("");
   }
 
   function toggleMarked(questionId: string) {
+    if (expired || busy) return;
     setMarked((current) => ({ ...current, [questionId]: !current[questionId] }));
   }
 
@@ -106,39 +183,46 @@ export function AssessmentPanel({ locale, copy, onCompleted, refreshKey = 0, pre
     setCurrentIndex(index);
   }
 
-  async function finishAssessment() {
-    if (!selectedId || !questions.length) return;
-    if (unansweredCount > 0) {
+  async function finishAssessment(options: { timedOut?: boolean } = {}) {
+    if (!selectedId || !questions.length || busy) return;
+    const timedOut = Boolean(options.timedOut || expired);
+
+    if (!timedOut && unansweredCount > 0) {
       const firstUnanswered = questions.findIndex((question) => !answers[question.id]);
       if (firstUnanswered >= 0) setCurrentIndex(firstUnanswered);
       setMessage(copy.answerAllFirst.replace("{count}", String(unansweredCount)));
       return;
     }
-    if (!window.confirm(copy.confirmSubmit)) return;
+    if (!timedOut && !window.confirm(copy.confirmSubmit)) return;
 
     setBusy(true);
-    setMessage("");
+    if (!timedOut) setMessage("");
     try {
-      const submitted = await submitAssessment(
-        selectedId,
-        questions.map((question) => ({ questionId: question.id, answer: answers[question.id] })),
-      );
+      const submittedAnswers = questions
+        .filter((question) => Boolean(answers[question.id]))
+        .map((question) => ({ questionId: question.id, answer: answers[question.id] }));
+      const submitted = await submitAssessment(selectedId, submittedAnswers);
+      clearSavedSession();
       setResult(submitted);
       setQuestions([]);
       setAnswers({});
       setMarked({});
+      setExpiresAt(null);
       onCompleted();
     } catch {
-      setMessage(copy.assessmentSubmitFailed);
+      setMessage(timedOut ? copy.timeExpiredSubmitFailed : copy.assessmentSubmitFailed);
     } finally {
       setBusy(false);
     }
   }
 
   function resetResult() {
+    clearSavedSession();
     setResult(null);
     setMessage("");
+    setExpiresAt(null);
     setSecondsRemaining(DEFAULT_DURATION_SECONDS);
+    timeoutHandled.current = false;
   }
 
   const selectedTitle = assessments.find((assessment) => assessment.id === selectedId)?.title ?? copy.assessmentCheck;
@@ -188,17 +272,17 @@ export function AssessmentPanel({ locale, copy, onCompleted, refreshKey = 0, pre
       ) : null}
 
       {questions.length && currentQuestion ? (
-        <div className="quizShell">
+        <div className={`quizShell ${expired ? "expired" : ""}`}>
           <div className="quizTopbar">
             <div>
-              <span className="assessmentEyebrow">{copy.inProgress}</span>
+              <span className="assessmentEyebrow">{expired ? copy.timeExpiredLabel : copy.inProgress}</span>
               <strong>{selectedTitle}</strong>
             </div>
             <div className={`quizTimer ${secondsRemaining <= 60 ? "urgent" : ""}`} aria-label={copy.timeRemaining}>
               <span>{copy.timeRemaining}</span><strong>{formatTime(secondsRemaining)}</strong>
             </div>
-            <button className="primaryButton compactButton" type="button" onClick={finishAssessment} disabled={busy}>
-              {busy ? copy.submittingAssessment : copy.submitAssessment}
+            <button className="primaryButton compactButton" type="button" onClick={() => finishAssessment({ timedOut: expired })} disabled={busy}>
+              {busy ? copy.submittingAssessment : expired ? copy.retryTimedSubmission : copy.submitAssessment}
             </button>
           </div>
 
@@ -211,12 +295,13 @@ export function AssessmentPanel({ locale, copy, onCompleted, refreshKey = 0, pre
                   type="button"
                   onClick={() => toggleMarked(currentQuestion.id)}
                   aria-pressed={Boolean(marked[currentQuestion.id])}
+                  disabled={expired || busy}
                 >
                   {marked[currentQuestion.id] ? copy.markedForReview : copy.markForReview}
                 </button>
               </div>
 
-              <fieldset className="quizQuestionBlock">
+              <fieldset className="quizQuestionBlock" disabled={expired || busy}>
                 <legend>{currentQuestion.text}</legend>
                 <div className="quizAnswerOptions">
                   {currentQuestion.options.map((option, optionIndex) => {
@@ -244,7 +329,7 @@ export function AssessmentPanel({ locale, copy, onCompleted, refreshKey = 0, pre
                 {currentIndex < questions.length - 1 ? (
                   <button className="primaryButton compactButton" type="button" onClick={() => goToQuestion(currentIndex + 1)}>{copy.next}</button>
                 ) : (
-                  <button className="primaryButton compactButton" type="button" onClick={finishAssessment} disabled={busy}>{copy.finishAndSubmit}</button>
+                  <button className="primaryButton compactButton" type="button" onClick={() => finishAssessment({ timedOut: expired })} disabled={busy}>{expired ? copy.retryTimedSubmission : copy.finishAndSubmit}</button>
                 )}
               </div>
             </div>
