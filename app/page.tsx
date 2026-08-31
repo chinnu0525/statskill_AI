@@ -17,6 +17,7 @@ import { SourceSearch } from "./components/SourceSearch";
 import { AiWorkspace } from "./components/AiWorkspace";
 import { PortalExperience } from "./components/PortalExperience";
 import { CompetencyFrameworkPanel, LatestAssessmentInsightPanel, ProfileEditorPanel, ReportsPanel } from "./components/LearnerInsightPanels";
+import { AdminPrivacyNotice, SystemConsolePanel, TrainerWorkspacePanel } from "./components/RoleWorkspacePanels";
 
 const locales: Locale[] = ["en", "hi", "te"];
 const storageKey = "statskill-locale";
@@ -40,6 +41,8 @@ export default function Home() {
   const pc = portalMessages[locale];
   const configured = isSupabaseConfigured();
   const isAdmin = dashboard?.role === "ADMIN" || dashboard?.role === "SUPER_ADMIN";
+  const isTrainer = dashboard?.role === "TRAINER" || dashboard?.role === "SUPER_ADMIN";
+  const isSuperAdmin = dashboard?.role === "SUPER_ADMIN";
 
   useEffect(() => {
     const saved = window.localStorage.getItem(storageKey) as Locale | null;
@@ -101,7 +104,7 @@ export default function Home() {
 
   if (!authenticated) return <main className="publicAuthPage">
     <section className="authStory"><div className="authGovLabel">{pc.government} · {pc.ministry}</div><div className="authIdentity"><span>SA</span><div><strong>StatSkill <em>AI</em></strong><small>{pc.portalSubtitle}</small></div></div><div className="authStoryCopy"><span>{pc.authStoryBadge}</span><h1>{pc.authStoryTitle}</h1><p>{pc.authStoryText}</p></div><div className="authFeatureList">{pc.authFeatures.map(([title, text], index) => <div key={title}><b>0{index + 1}</b><span><strong>{title}</strong><small>{text}</small></span></div>)}</div><small className="authCompliance">{pc.demoPrivacy}</small></section>
-    <section className="authPortalPanel" aria-labelledby="auth-title"><div className="authPanelTop"><div><span>{authMode === "signin" ? pc.authSecure : pc.authCreate}</span><h1 id="auth-title">{authMode === "signin" ? copy.welcomeBack : copy.createAccount}</h1><p>{authMode === "signin" ? copy.authHint : pc.authCreateHint}</p></div><select value={locale} onChange={(e) => chooseLocale(e.target.value as Locale)} aria-label={pc.language}>{locales.map((item) => <option key={item} value={item}>{localeLabels[item]}</option>)}</select></div>
+    <section className="authPortalPanel" aria-labelledby="auth-title"><div className="authPanelTop"><div><span>{authMode === "signin" ? pc.authSecure : pc.authCreate}</span><h1 id="auth-title">{authMode === "signin" ? copy.welcomeBack : copy.createAccount}</h1><p>{authMode === "signin" ? copy.authHint : pc.authCreateHint}</p></div><select value={locale} onChange={(event) => chooseLocale(event.target.value as Locale)} aria-label={pc.language}>{locales.map((item) => <option key={item} value={item}>{localeLabels[item]}</option>)}</select></div>
       {!configured && <div className="notice">{copy.configurationNeeded}</div>}
       <form className="portalAuthForm" onSubmit={handleAuth}>
         {authMode === "signup" && <><div className="authFormGrid"><label><span>{copy.fullName}</span><input name="fullName" autoComplete="name" required/></label><label><span>{pc.designationLabel}</span><input name="designation"/></label><label><span>{pc.departmentLabel}</span><input name="department"/></label><label><span>{pc.cadreLabel}</span><input name="cadre"/></label></div><details className="profileDisclosure"><summary>{pc.careerContext} <span>{pc.optionalRecommended}</span></summary><div className="authFormGrid disclosureGrid"><label className="wide"><span>{pc.assignmentLabel}</span><input name="assignment"/></label><label><span>{pc.qualificationLabel}</span><input name="qualification"/></label><label><span>{pc.experienceLabel}</span><input name="experienceYears" type="number" min="0" max="50" step="1"/></label><label className="wide"><span>{pc.priorTrainingLabel}</span><textarea name="priorTraining" rows={3}/></label></div></details></>}
@@ -121,6 +124,9 @@ export default function Home() {
   const latestInsightNode = <LatestAssessmentInsightPanel locale={locale}/>;
   const reportsNode = <ReportsPanel locale={locale}/>;
   const profileNode = <ProfileEditorPanel locale={locale} fullName={dashboard?.fullName ?? ""} profile={currentProfile} onSaved={() => void refreshDashboard(locale)}/>;
+  const adminNode = isAdmin ? <><AdminPrivacyNotice locale={locale}/><div className="productionModule"><AdminOverview copy={copy}/></div></> : undefined;
+  const trainerNode = isTrainer ? <TrainerWorkspacePanel locale={locale}/> : undefined;
+  const superAdminNode = isSuperAdmin ? <SystemConsolePanel locale={locale}/> : undefined;
 
-  return <>{loadingDashboard && <div className="portalRefreshNotice">{copy.loading}</div>}<PortalExperience locale={locale} localeLabels={localeLabels} fullName={dashboard?.fullName} actualRole={dashboard?.role} competencyScore={dashboard?.competencyScore ?? 0} gaps={dashboard?.gaps ?? []} courses={dashboard?.courses ?? []} learningHours={dashboard?.learningHours} assessmentsCompleted={dashboard?.assessmentsCompleted} onLocaleChange={chooseLocale} onSignOut={handleSignOut} onLearningChanged={() => void refreshDashboard(locale)} materialsNode={materialsNode} sourceNode={sourceNode} aiNode={aiNode} assessmentNode={assessmentNode} frameworkNode={frameworkNode} reportsNode={reportsNode} profileNode={profileNode} latestInsightNode={latestInsightNode} adminNode={isAdmin ? <div className="productionModule"><AdminOverview copy={copy}/></div> : undefined}/></>;
+  return <>{loadingDashboard && <div className="portalRefreshNotice">{copy.loading}</div>}<PortalExperience key={dashboard?.role ?? "OFFICIAL"} locale={locale} localeLabels={localeLabels} fullName={dashboard?.fullName} actualRole={dashboard?.role} competencyScore={dashboard?.competencyScore ?? 0} gaps={dashboard?.gaps ?? []} courses={dashboard?.courses ?? []} learningHours={dashboard?.learningHours} assessmentsCompleted={dashboard?.assessmentsCompleted} onLocaleChange={chooseLocale} onSignOut={handleSignOut} onLearningChanged={() => void refreshDashboard(locale)} materialsNode={materialsNode} sourceNode={sourceNode} aiNode={aiNode} assessmentNode={assessmentNode} frameworkNode={frameworkNode} reportsNode={reportsNode} profileNode={profileNode} latestInsightNode={latestInsightNode} adminNode={adminNode} trainerNode={trainerNode} superAdminNode={superAdminNode}/></>;
 }
