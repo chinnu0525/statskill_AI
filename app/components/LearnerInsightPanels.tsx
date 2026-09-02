@@ -33,8 +33,8 @@ function scoreLevel(score: number | null) {
 
 function priorityClass(priority: FrameworkItem["priority"], gapScore: number) {
   if (!priority && gapScore <= 0) return "met";
-  if (priority === "HIGH") return "high";
-  if (priority === "MEDIUM") return "medium";
+  if (priority === "CRITICAL" || priority === "HIGH") return "high";
+  if (priority === "MODERATE") return "medium";
   return "low";
 }
 
@@ -69,7 +69,7 @@ export function CompetencyFrameworkPanel({ locale }: { locale: Locale }) {
   if (error) return <div className="insightError"><span>{copy.noData}</span><button type="button" onClick={() => setRefreshKey((v) => v + 1)}>{copy.retry}</button></div>;
 
   return <section className="liveFrameworkPanel">
-    <div className="livePanelIntro"><div><h2>{copy.frameworkTitle}</h2><p>{copy.frameworkHint}</p></div><span className="targetBadge">70 / 100</span></div>
+    <div className="livePanelIntro"><div><h2>{copy.frameworkTitle}</h2><p>{copy.frameworkHint}</p></div><span className="targetBadge">5-level model</span></div>
     <div className="frameworkDomainGrid">
       {grouped.map(([key, domainItems]) => <article className="portalCard liveDomainCard" key={key}>
         <div className="liveDomainHeading"><div><span>{domainItems[0]?.domainCode}</span><h3>{domainItems[0]?.domainName}</h3></div><strong>{domainItems.filter((item) => item.currentScore !== null).length}/{domainItems.length} {copy.measured}</strong></div>
@@ -77,9 +77,9 @@ export function CompetencyFrameworkPanel({ locale }: { locale: Locale }) {
           const current = item.currentScore;
           const gap = Math.max(0, item.gapScore);
           return <div className="liveCompetencyItem" key={item.id}>
-            <div className="competencyIdentity"><span>{item.code}</span><strong>{item.name}</strong><small>{current === null ? copy.notAssessed : `${copy.currentScore}: ${Math.round(current)} · ${scoreLevel(current)}`}</small></div>
-            <div className="scoreMeter" aria-label={`${item.name} ${current ?? 0} of 100`}><i style={{ width: `${Math.max(0, Math.min(100, current ?? 0))}%` }}/><b style={{ left: "70%" }}/></div>
-            <div className="competencyNumbers"><span><small>{copy.targetScore}</small><b>70</b></span><span><small>{copy.gap}</small><b>{Math.round(gap)}</b></span><em className={`gapBadge ${priorityClass(item.priority, gap)}`}>{gap <= 0 && current !== null ? copy.targetMet : item.priority ?? copy.notAssessed}</em></div>
+            <div className="competencyIdentity"><span>{item.code}</span><strong>{item.name}</strong><small>{current === null ? copy.notAssessed : `${copy.currentScore}: ${Math.round(current)} · L${item.currentLevel ?? scoreLevel(current).replace("L", "")}`}</small></div>
+            <div className="scoreMeter" aria-label={`${item.name} level ${item.currentLevel ?? 0} of 5`}><i style={{ width: `${Math.max(0, Math.min(100, (item.currentLevel ?? 0) * 20))}%` }}/><b style={{ left: `${item.requiredLevel * 20}%` }}/></div>
+            <div className="competencyNumbers"><span><small>{copy.targetScore}</small><b>L{item.requiredLevel}</b></span><span><small>{copy.gap}</small><b>{Math.max(0, item.requiredLevel - (item.currentLevel ?? 0))}</b></span><em className={`gapBadge ${priorityClass(item.priority, gap)}`}>{item.priority === "NONE" ? copy.targetMet : item.priority ?? copy.notAssessed}</em></div>
           </div>;
         })}</div>
       </article>)}

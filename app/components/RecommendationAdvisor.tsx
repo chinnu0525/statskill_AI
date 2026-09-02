@@ -24,6 +24,7 @@ const copy: Record<Locale, Record<string, string>> = {
     external: "Open external item",
     mockAction: "Demo catalog item",
     reason: "Recommendation rationale",
+    practice: "Targeted practice assignment",
     breakdown: "Explainable score breakdown",
     close: "Close",
     success: "Course added to your learning plan.",
@@ -52,6 +53,7 @@ const copy: Record<Locale, Record<string, string>> = {
     external: "बाहरी आइटम खोलें",
     mockAction: "डेमो कैटलॉग आइटम",
     reason: "अनुशंसा का कारण",
+    practice: "लक्षित अभ्यास कार्य",
     breakdown: "व्याख्यायित स्कोर विवरण",
     close: "बंद करें",
     success: "पाठ्यक्रम आपके सीखने की योजना में जोड़ दिया गया है।",
@@ -80,6 +82,7 @@ const copy: Record<Locale, Record<string, string>> = {
     external: "బాహ్య అంశాన్ని తెరవండి",
     mockAction: "డెమో క్యాటలాగ్ అంశం",
     reason: "సిఫార్సు కారణం",
+    practice: "లక్ష్యిత అభ్యాస పని",
     breakdown: "వివరణాత్మక స్కోర్ విభజన",
     close: "మూసివేయండి",
     success: "కోర్సు మీ అభ్యాస ప్రణాళికలో చేర్చబడింది.",
@@ -215,6 +218,7 @@ export function RecommendationAdvisor({
               <button type="button" onClick={() => setSelected(null)} aria-label={t.close}>×</button>
             </div>
             <div className="advisorReasonPanel"><strong>{t.reason}</strong><p>{selected.reason}</p></div>
+            <div className="advisorPracticePanel"><strong>{t.practice}</strong><p>{selected.practiceAssignment}</p></div>
             <div className="scoreBreakdown">
               {breakdownKeys.map((key) => (
                 <div key={key}>

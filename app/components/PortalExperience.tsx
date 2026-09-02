@@ -87,7 +87,7 @@ function Empty({ text }: { text: string }) {
 
 function Pill({ priority }: { priority: string }) {
   const p = priority.toUpperCase();
-  return <span className={`pill ${p === "HIGH" || p === "CRITICAL" ? "danger" : p === "MEDIUM" ? "warning" : "neutral"}`}>{p}</span>;
+  return <span className={`pill ${p === "HIGH" || p === "CRITICAL" ? "danger" : p === "MODERATE" ? "warning" : "neutral"}`}>{p}</span>;
 }
 
 export function PortalExperience(props: Props) {
@@ -98,18 +98,38 @@ export function PortalExperience(props: Props) {
   const [contrast, setContrast] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const nav = useMemo(() => navConfig.filter((item) => item.roles === "all" || item.roles.includes(role)), [role]);
   const firstName = props.fullName?.split(" ")[0] || t.learner;
   const learningProgress = props.courses.length
     ? `${Math.round(props.courses.reduce((sum, course) => sum + course.progress, 0) / props.courses.length)}%`
     : t.unavailable;
   const highPriorityGaps = props.gaps.filter((gap) => gap.priority.toUpperCase() === "HIGH" || gap.priority.toUpperCase() === "CRITICAL").length;
+  const loopTargets = useMemo<PortalView[]>(() => {
+    if (role === "learner") return ["profile", "framework", "advisor", "igot", "assessment", "reports"];
+    if (role === "trainer") return ["profile", "framework", "trainer", "igot", "generator", "reports"];
+    if (role === "admin") return ["profile", "framework", "admin", "igot", "generator", "reports"];
+    return ["profile", "framework", "admin", "igot", "generator", "reports"];
+  }, [role]);
+  const notifications = useMemo(() => {
+    if (role !== "learner") {
+      const target: PortalView = role === "trainer" ? "trainer" : role === "admin" ? "admin" : "superadmin";
+      return [{ id: "workspace", title: t.roleWorkspaceReady, detail: t.roleWorkspaceReadyHint, target }];
+    }
+    const items: Array<{ id: string; title: string; detail: string; target: PortalView }> = [];
+    if (!props.assessmentsCompleted) items.push({ id: "assessment", title: t.assessmentDue, detail: t.assessmentDueHint, target: "assessment" });
+    if (highPriorityGaps) items.push({ id: "gaps", title: t.priorityGapAlert, detail: t.priorityGapAlertHint.replace("{count}", String(highPriorityGaps)), target: "advisor" });
+    const activeCourses = props.courses.filter((course) => course.progress < 100).length;
+    if (activeCourses) items.push({ id: "learning", title: t.learningReminder, detail: t.learningReminderHint.replace("{count}", String(activeCourses)), target: "learning" });
+    return items;
+  }, [highPriorityGaps, props.assessmentsCompleted, props.courses, role, t]);
 
   function go(next: PortalView) {
     const allowed = navConfig.find((item) => item.id === next);
     if (!allowed || (allowed.roles !== "all" && !allowed.roles.includes(role))) return;
     setView(next);
     setMobileOpen(false);
+    setNotificationsOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -134,7 +154,15 @@ export function PortalExperience(props: Props) {
         <span><strong>StatSkill <em>AI</em></strong><small>{t.portalSubtitle}</small></span>
       </button>
       <div className="headerActions">
-        <button className="iconButton" type="button" aria-label="Notifications">🔔</button>
+        <div className="notificationControl">
+          <button className="iconButton" type="button" aria-label={t.notifications} aria-expanded={notificationsOpen} onClick={() => setNotificationsOpen((value) => !value)}>
+            🔔{notifications.length ? <span className="notificationCount">{notifications.length}</span> : null}
+          </button>
+          {notificationsOpen ? <aside className="notificationPanel" aria-label={t.notifications}>
+            <div className="notificationHeading"><strong>{t.notifications}</strong><button type="button" onClick={() => setNotificationsOpen(false)} aria-label={t.closeNotifications}>×</button></div>
+            {notifications.length ? notifications.map((item) => <button className="notificationItem" type="button" key={item.id} onClick={() => go(item.target)}><strong>{item.title}</strong><span>{item.detail}</span></button>) : <p>{t.noNotifications}</p>}
+          </aside> : null}
+        </div>
         <button className="profileChip" type="button" onClick={() => go("profile")}>
           <span>{firstName.slice(0, 1).toUpperCase()}</span>
           <div><strong>{props.fullName || t.learner}</strong><small>{props.actualRole || "OFFICIAL"}</small></div>
@@ -163,7 +191,7 @@ export function PortalExperience(props: Props) {
           </div>
           <div className="loopCard">
             <span>{t.loopTitle}</span>
-            {t.loopSteps.map((step, index) => <div key={step}><b>{index + 1}</b><p>{step}</p>{index < 5 && <i>→</i>}</div>)}
+            {t.loopSteps.map((step, index) => <button type="button" key={step} onClick={() => go(loopTargets[index])}><b>{index + 1}</b><p>{step}</p><i>→</i></button>)}
           </div>
         </section>
 

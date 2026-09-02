@@ -5,7 +5,7 @@ export type UserRole = "OFFICIAL" | "TRAINER" | "ADMIN" | "SUPER_ADMIN";
 
 export type DashboardGap = {
   name: string;
-  priority: "LOW" | "MEDIUM" | "HIGH";
+  priority: "NONE" | "MODERATE" | "HIGH" | "CRITICAL";
   score: number;
 };
 

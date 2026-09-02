@@ -8,7 +8,7 @@ export type SkillGap = {
   competencyId: string;
   score: number;
   gapScore: number;
-  priority: "LOW" | "MEDIUM" | "HIGH";
+  priority: "NONE" | "MODERATE" | "HIGH" | "CRITICAL";
   reason: string;
 };
 
@@ -22,7 +22,7 @@ export function deriveSkillGaps(scores: CompetencyScore[], target = 70): SkillGa
     .map((item) => {
       const score = normalizeScore(item.score);
       const gapScore = Math.max(0, target - score);
-      const priority = gapScore >= 35 ? "HIGH" : gapScore >= 15 ? "MEDIUM" : "LOW";
+      const priority = gapScore <= 0 ? "NONE" : gapScore >= 50 ? "CRITICAL" : gapScore >= 25 ? "HIGH" : "MODERATE";
       return {
         competencyId: item.competencyId,
         score,

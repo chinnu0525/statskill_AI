@@ -18,6 +18,7 @@ export type AdvisorRecommendation = {
   competencyName: string;
   score: number;
   reason: string;
+  practiceAssignment: string;
   isMock: boolean;
   isEnrolled: boolean;
   url: string | null;
@@ -27,7 +28,7 @@ export type AdvisorRecommendation = {
 type GapRow = {
   competency_id: string;
   gap_score: number | string;
-  priority: "LOW" | "MEDIUM" | "HIGH";
+  priority: "NONE" | "MODERATE" | "HIGH" | "CRITICAL";
   competencies: { code?: string | null; name?: string | null } | null;
 };
 
@@ -86,8 +87,9 @@ function normalizedText(value: string) {
 
 function gapSignal(priority: GapRow["priority"] | undefined, gapScore: number) {
   if (!priority) return 30;
-  if (priority === "HIGH") return clamp(85 + gapScore / 3);
-  if (priority === "MEDIUM") return clamp(65 + gapScore / 3);
+  if (priority === "CRITICAL") return clamp(94 + gapScore / 6);
+  if (priority === "HIGH") return clamp(82 + gapScore / 4);
+  if (priority === "MODERATE") return clamp(62 + gapScore / 3);
   return clamp(45 + gapScore / 4);
 }
 
@@ -204,6 +206,9 @@ export async function loadAdvisorRecommendations(locale: Locale, limit = 6): Pro
       reason: gap
         ? `Addresses your ${gap.priority.toLowerCase()}-priority ${competencyName} gap (${Math.round(Number(gap.gap_score))} points).`
         : `Relevant to ${competencyName} for your current role profile.`,
+      practiceAssignment: gap
+        ? `Complete an Apply/Analyze practice set for ${competencyName}, then reassess the same competency.`
+        : `Complete a short role-based practice set for ${competencyName} before reassessment.`,
       isMock: isMockSource(course.source_system),
       isEnrolled,
       url: null,
@@ -234,6 +239,9 @@ export async function loadAdvisorRecommendations(locale: Locale, limit = 6): Pro
       reason: gap
         ? `Mapped to your ${gap.priority.toLowerCase()}-priority ${competencyName} gap (${Math.round(Number(gap.gap_score))} points).`
         : `Catalog item relevant to the current role profile; no measured matching gap was found.`,
+      practiceAssignment: gap
+        ? `After this learning item, complete an Apply/Analyze practice set for ${competencyName} and reassess.`
+        : `Pair this item with a short role-based practice set before reassessment.`,
       isMock: isMockSource(row.source_system),
       isEnrolled: false,
       url: row.url,

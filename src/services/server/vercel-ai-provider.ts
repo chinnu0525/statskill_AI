@@ -67,6 +67,7 @@ const quizJsonSchema = {
           correctOptionId: { type: "string", enum: ["A", "B", "C", "D"] },
           explanation: { type: "string", minLength: 1, maxLength: 2400 },
           difficulty: { type: "string", enum: ["EASY", "MEDIUM", "HARD"] },
+          bloomLevel: { type: "string", enum: ["REMEMBER", "UNDERSTAND", "APPLY", "ANALYZE", "EVALUATE", "CREATE"] },
           topic: { type: "string", minLength: 1, maxLength: 180 },
           sourceChunkIds: {
             type: "array",
@@ -81,6 +82,7 @@ const quizJsonSchema = {
           "correctOptionId",
           "explanation",
           "difficulty",
+          "bloomLevel",
           "topic",
           "sourceChunkIds",
         ],
@@ -270,7 +272,7 @@ export class VercelAiGatewayProvider implements AiProvider {
       system: groundingSystem,
       maxTokens: 9000,
       prompt: `Generate exactly ${input.questionCount} ${input.difficulty.toLowerCase()} multiple-choice questions in ${localeName(input.locale)}.
-Each question must have exactly four distinct options with IDs A, B, C, and D, one correct option, a concise grounded explanation, a topic, difficulty ${input.difficulty}, and 1-4 sourceChunkIds that directly support the question and answer.
+Each question must have exactly four distinct options with IDs A, B, C, and D, one correct option, a concise grounded explanation, a topic, difficulty ${input.difficulty}, a Bloom taxonomy bloomLevel (REMEMBER, UNDERSTAND, APPLY, ANALYZE, EVALUATE, or CREATE), and 1-4 sourceChunkIds that directly support the question and answer. Prefer APPLY/ANALYZE when the evidence supports applied reasoning.
 The quiz locale field must be ${input.locale}.
 Do not create a question when the supplied evidence is insufficient.
 

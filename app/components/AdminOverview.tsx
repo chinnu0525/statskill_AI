@@ -37,6 +37,19 @@ export function AdminOverview({ copy }: { copy: Record<string, string> }) {
             <article><span>{copy.averageAssessment}</span><strong>{analytics.averageAssessment}%</strong></article>
             <article><span>{copy.highPriorityGaps}</span><strong>{analytics.highPriorityGaps}</strong></article>
             <article><span>{copy.completionRate}</span><strong>{analytics.completionRate}%</strong></article>
+            <article><span>{copy.quarterlyLevelGain}</span><strong>{analytics.quarterlyLevelGain >= 0 ? "+" : ""}{analytics.quarterlyLevelGain}</strong></article>
+            <article><span>{copy.quarterlyTargetAttainment}</span><strong>{analytics.quarterlyTargetAttainment}%</strong></article>
+          </div>
+
+          <div className="adminGapList">
+            <h3>{copy.departmentOkrProgress}</h3>
+            {analytics.departmentProgress.length ? analytics.departmentProgress.map((item) => (
+              <div className="adminGapRow" key={item.department}>
+                <strong>{item.department}</strong>
+                <span>{item.assessedEvents} {copy.quarterlyAssessments}</span>
+                <span>{item.targetAttainment}% {copy.targetAttainment}</span>
+              </div>
+            )) : <p className="muted emptyState">{copy.noQuarterlyData}</p>}
           </div>
 
           <div className="adminGapList">

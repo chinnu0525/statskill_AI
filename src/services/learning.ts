@@ -109,6 +109,36 @@ export async function loadLearningPath(locale: Locale): Promise<LearningPathItem
     });
 }
 
+export async function updateLearningProgress(
+  item: Pick<LearningPathItem, "enrollmentId" | "startedAt">,
+  progressValue: number,
+  options: { start?: boolean } = {},
+) {
+  const supabase = createClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error("AUTH_REQUIRED");
+
+  const progress = Math.max(0, Math.min(100, Math.round(progressValue)));
+  const started = options.start || progress > 0;
+  const status: LearningPathItem["status"] = progress >= 100
+    ? "COMPLETED"
+    : started
+      ? "IN_PROGRESS"
+      : "NOT_STARTED";
+  const now = new Date().toISOString();
+  const { error } = await supabase
+    .from("learning_enrollments")
+    .update({
+      progress,
+      status,
+      started_at: started ? item.startedAt ?? now : null,
+      completed_at: status === "COMPLETED" ? now : null,
+    })
+    .eq("id", item.enrollmentId)
+    .eq("user_id", authData.user.id);
+  if (error) throw error;
+}
+
 export async function loadExternalCatalog(locale: Locale): Promise<ExternalCatalogItem[]> {
   const supabase = createClient();
   const { data: authData, error: authError } = await supabase.auth.getUser();

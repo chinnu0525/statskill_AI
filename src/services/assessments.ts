@@ -4,7 +4,16 @@ import { createClient } from "../lib/supabase/client";
 export type AssessmentSummary = { id: string; title: string };
 export type AssessmentOption = { id: string; label: string };
 export type AssessmentQuestion = { id: string; text: string; options: AssessmentOption[] };
-export type AssessmentResult = { attemptId: string; score: number; correct: number; total: number };
+export type AssessmentResult = {
+  attemptId: string;
+  score: number;
+  correct: number;
+  total: number;
+  previousLevel?: number;
+  currentLevel?: number;
+  requiredLevel?: number;
+  gapPriority?: "NONE" | "MODERATE" | "HIGH" | "CRITICAL";
+};
 
 export async function listAssessments(locale: Locale): Promise<AssessmentSummary[]> {
   const supabase = createClient();
