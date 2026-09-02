@@ -22,6 +22,12 @@ export type GeneratedQuizResult = {
   reused: boolean;
 };
 
+export type QuizCompetency = {
+  id: string;
+  code: string;
+  name: string;
+};
+
 export type TutorResult = {
   generationId: string;
   supported: boolean;
@@ -95,8 +101,24 @@ export async function listQuizReadyDocuments(): Promise<LearningDocument[]> {
   return documents.filter((document) => document.status === "CHUNKED");
 }
 
+export async function listQuizCompetencies(): Promise<QuizCompetency[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("competencies")
+    .select("id,code,name")
+    .order("domain", { ascending: true })
+    .order("name", { ascending: true });
+  if (error) throw new AiApiError("COMPETENCIES_UNAVAILABLE", 500);
+  return (data ?? []).map((item) => ({
+    id: String(item.id),
+    code: String(item.code),
+    name: String(item.name),
+  }));
+}
+
 export async function generateDocumentQuiz(input: {
   documentId: string;
+  competencyId: string;
   locale: Locale;
   questionCount: number;
   difficulty: AiDifficulty;
@@ -137,6 +159,7 @@ export async function generateDocumentQuiz(input: {
         locale: input.locale,
         questionCount: input.questionCount,
         difficulty: input.difficulty,
+        competencyId: input.competencyId,
         contextChunkIds: chunks.map((chunk) => chunk.id),
       },
     });
@@ -148,13 +171,14 @@ export async function generateDocumentQuiz(input: {
       locale: input.locale,
       questionCount: input.questionCount,
       difficulty: input.difficulty,
-      competencyId: null,
+      competencyId: input.competencyId,
       chunks,
     }, input.onProgress);
 
     const { data: assessmentId, error: persistenceError } = await supabase.rpc("persist_my_generated_assessment", {
       p_generation_id: requestId,
       p_document_id: input.documentId,
+      p_competency_id: input.competencyId,
       p_title: generation.value.title,
       p_locale: input.locale,
       p_questions: generation.value.questions,

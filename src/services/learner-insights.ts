@@ -9,8 +9,10 @@ export type FrameworkItem = {
   domainName: string;
   currentScore: number | null;
   targetScore: number;
+  currentLevel: number | null;
+  requiredLevel: number;
   gapScore: number;
-  priority: "LOW" | "MEDIUM" | "HIGH" | null;
+  priority: "NONE" | "MODERATE" | "HIGH" | "CRITICAL" | null;
   assessedAt: string | null;
 };
 
@@ -51,12 +53,14 @@ type ScoreRow = {
   competency_id: string;
   score: number | string;
   assessed_at: string | null;
+  current_level: number | string;
+  required_level: number | string;
 };
 
 type GapRow = {
   competency_id: string;
   gap_score: number | string;
-  priority: "LOW" | "MEDIUM" | "HIGH";
+  priority: "NONE" | "MODERATE" | "HIGH" | "CRITICAL";
 };
 
 function localizedTitle(localizations: Array<{ locale: string; title: string }> | null | undefined, locale: Locale) {
@@ -78,7 +82,7 @@ export async function loadCompetencyFramework(): Promise<FrameworkItem[]> {
   const { supabase, user } = await currentUser();
   const [competencyResult, scoreResult, gapResult] = await Promise.all([
     supabase.from("competencies").select("id,code,name,competency_domains(code,name)").order("code"),
-    supabase.from("user_competencies").select("competency_id,score,assessed_at").eq("user_id", user.id),
+    supabase.from("user_competencies").select("competency_id,score,current_level,required_level,assessed_at").eq("user_id", user.id),
     supabase.from("skill_gaps").select("competency_id,gap_score,priority").eq("user_id", user.id),
   ]);
 
@@ -102,6 +106,8 @@ export async function loadCompetencyFramework(): Promise<FrameworkItem[]> {
       domainName: item.competency_domains?.name ?? "Other competencies",
       currentScore,
       targetScore,
+      currentLevel: score ? Number(score.current_level) : null,
+      requiredLevel: score ? Number(score.required_level) : 3,
       gapScore,
       priority: gap?.priority ?? null,
       assessedAt: score?.assessed_at ?? null,
@@ -187,6 +193,8 @@ export async function loadLearnerReports(locale: Locale): Promise<LearnerReports
     domain: item.domainName,
     current_score: item.currentScore ?? "Not assessed",
     target_score: item.targetScore,
+    current_level: item.currentLevel ?? "Not assessed",
+    required_level: item.requiredLevel,
     gap_score: item.gapScore,
     priority: item.priority ?? "UNMEASURED",
     assessed_at: item.assessedAt ?? "",

@@ -5,6 +5,7 @@ import type { Locale } from "../../src/i18n/messages";
 import {
   loadExternalCatalog,
   loadLearningPath,
+  updateLearningProgress,
   type ExternalCatalogItem,
   type LearningPathItem,
 } from "../../src/services/learning";
@@ -37,6 +38,12 @@ type PanelCopy = {
   demoItem: string;
   catalogDisclaimer: string;
   deliveryMode: string;
+  startCourse: string;
+  saveProgress: string;
+  markComplete: string;
+  saving: string;
+  progressSaved: string;
+  updateFailed: string;
 };
 
 const panelCopy: Record<Locale, PanelCopy> = {
@@ -68,6 +75,12 @@ const panelCopy: Record<Locale, PanelCopy> = {
     demoItem: "Demo item only",
     catalogDisclaimer: "IGOT_MOCK / NSSTA_MOCK entries are seeded SIH demonstration data. They do not represent live government catalog or enrollment results.",
     deliveryMode: "Delivery",
+    startCourse: "Start course",
+    saveProgress: "Save progress",
+    markComplete: "Mark complete",
+    saving: "Saving…",
+    progressSaved: "Learning progress updated.",
+    updateFailed: "Progress could not be updated. Please try again.",
   },
   hi: {
     loadingPath: "आपका नामांकित सीखने का मार्ग लोड हो रहा है…",
@@ -97,6 +110,12 @@ const panelCopy: Record<Locale, PanelCopy> = {
     demoItem: "केवल डेमो आइटम",
     catalogDisclaimer: "IGOT_MOCK / NSSTA_MOCK प्रविष्टियाँ SIH प्रदर्शन के लिए सीड किया गया डेटा हैं। ये वास्तविक सरकारी कैटलॉग या नामांकन परिणाम नहीं हैं।",
     deliveryMode: "माध्यम",
+    startCourse: "पाठ्यक्रम शुरू करें",
+    saveProgress: "प्रगति सहेजें",
+    markComplete: "पूर्ण चिह्नित करें",
+    saving: "सहेजा जा रहा है…",
+    progressSaved: "सीखने की प्रगति अद्यतन हुई।",
+    updateFailed: "प्रगति अद्यतन नहीं हो सकी। फिर प्रयास करें।",
   },
   te: {
     loadingPath: "మీ నమోదు చేసిన అభ్యాస మార్గాన్ని లోడ్ చేస్తున్నాం…",
@@ -126,6 +145,12 @@ const panelCopy: Record<Locale, PanelCopy> = {
     demoItem: "డెమో అంశం మాత్రమే",
     catalogDisclaimer: "IGOT_MOCK / NSSTA_MOCK ఎంట్రీలు SIH డెమో కోసం సీడ్ చేసిన డేటా. ఇవి నిజమైన ప్రభుత్వ క్యాటలాగ్ లేదా నమోదు ఫలితాలు కావు.",
     deliveryMode: "డెలివరీ",
+    startCourse: "కోర్సు ప్రారంభించండి",
+    saveProgress: "పురోగతిని సేవ్ చేయండి",
+    markComplete: "పూర్తిగా గుర్తించండి",
+    saving: "సేవ్ చేస్తోంది…",
+    progressSaved: "అభ్యాస పురోగతి నవీకరించబడింది.",
+    updateFailed: "పురోగతిని నవీకరించలేకపోయాము. మళ్లీ ప్రయత్నించండి.",
   },
 };
 
@@ -149,6 +174,9 @@ export function LearningPathPanel({ locale }: { locale: Locale }) {
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [draftProgress, setDraftProgress] = useState<Record<string, number>>({});
+  const [savingId, setSavingId] = useState("");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -156,7 +184,10 @@ export function LearningPathPanel({ locale }: { locale: Locale }) {
     setFailed(false);
     loadLearningPath(locale)
       .then((data) => {
-        if (active) setItems(data);
+        if (active) {
+          setItems(data);
+          setDraftProgress(Object.fromEntries(data.map((item) => [item.enrollmentId, item.progress])));
+        }
       })
       .catch(() => {
         if (active) {
@@ -177,6 +208,21 @@ export function LearningPathPanel({ locale }: { locale: Locale }) {
     ? Math.round(items.reduce((sum, item) => sum + item.progress, 0) / items.length)
     : 0;
 
+  async function saveProgress(item: LearningPathItem, progress: number, start = false) {
+    if (savingId) return;
+    setSavingId(item.enrollmentId);
+    setMessage("");
+    try {
+      await updateLearningProgress(item, progress, { start });
+      setMessage(t.progressSaved);
+      setRefreshKey((value) => value + 1);
+    } catch {
+      setMessage(t.updateFailed);
+    } finally {
+      setSavingId("");
+    }
+  }
+
   return (
     <section className="liveLearningPanel" aria-live="polite">
       <div className="learningSummaryBar">
@@ -189,6 +235,7 @@ export function LearningPathPanel({ locale }: { locale: Locale }) {
 
       {loading ? <div className="portalEmptyState">{t.loadingPath}</div> : null}
       {!loading && failed ? <div className="noticePanel">{t.loadFailed}</div> : null}
+      {message ? <div className="noticePanel" role="status">{message}</div> : null}
       {!loading && !failed && !items.length ? <div className="portalEmptyState">{t.emptyPath}</div> : null}
 
       {!loading && items.length ? (
@@ -211,6 +258,12 @@ export function LearningPathPanel({ locale }: { locale: Locale }) {
                   <div><dt>{t.duration}</dt><dd>{durationLabel(item.durationMinutes)}</dd></div>
                   <div><dt>{t.source}</dt><dd>{item.sourceSystem}</dd></div>
                 </dl>
+                <div className="learningProgressActions">
+                  {item.status === "NOT_STARTED" ? <button type="button" onClick={() => void saveProgress(item, 0, true)} disabled={savingId === item.enrollmentId}>{savingId === item.enrollmentId ? t.saving : t.startCourse}</button> : null}
+                  <label><span>{t.progress}: {draftProgress[item.enrollmentId] ?? item.progress}%</span><input type="range" min="0" max="100" step="5" value={draftProgress[item.enrollmentId] ?? item.progress} onChange={(event) => setDraftProgress((current) => ({ ...current, [item.enrollmentId]: Number(event.target.value) }))} disabled={savingId === item.enrollmentId || item.status === "COMPLETED"} /></label>
+                  <button type="button" onClick={() => void saveProgress(item, draftProgress[item.enrollmentId] ?? item.progress)} disabled={savingId === item.enrollmentId || (draftProgress[item.enrollmentId] ?? item.progress) === item.progress}>{savingId === item.enrollmentId ? t.saving : t.saveProgress}</button>
+                  {item.status !== "COMPLETED" ? <button className="completeLearningButton" type="button" onClick={() => void saveProgress(item, 100)} disabled={savingId === item.enrollmentId}>{t.markComplete}</button> : null}
+                </div>
               </div>
             </li>
           ))}

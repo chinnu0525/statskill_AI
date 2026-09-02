@@ -9,6 +9,7 @@ import "./retrieval.css";
 import "./ai.css";
 import "./recommendations.css";
 import "./learning.css";
+import "./closed-loop.css";
 import "./learner-insights.css";
 import "./role-workspaces.css";
 import "./lovable-port.css";

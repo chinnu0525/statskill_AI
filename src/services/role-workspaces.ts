@@ -13,6 +13,7 @@ export type TrainerAssessment = {
   createdAt: string;
   sourceDocumentTitle: string;
   questionCount: number;
+  reviewStatus: "PRIVATE" | "PENDING_REVIEW" | "APPROVED" | "REJECTED";
 };
 
 export type TrainerWorkspace = {
@@ -59,7 +60,7 @@ export async function loadTrainerWorkspace(): Promise<TrainerWorkspace> {
       .limit(20),
     supabase
       .from("assessments")
-      .select("id,title,created_at,source_document_id,origin")
+      .select("id,title,created_at,source_document_id,origin,review_status")
       .eq("owner_id", user.id)
       .eq("origin", "AI_GENERATED")
       .order("created_at", { ascending: false })
@@ -93,6 +94,7 @@ export async function loadTrainerWorkspace(): Promise<TrainerWorkspace> {
     createdAt: row.created_at,
     sourceDocumentTitle: row.source_document_id ? documentTitle.get(row.source_document_id) ?? "Learning material" : "Learning material",
     questionCount: counts.get(row.id) ?? 0,
+    reviewStatus: row.review_status ?? "PRIVATE",
   }));
 
   return {
@@ -101,6 +103,16 @@ export async function loadTrainerWorkspace(): Promise<TrainerWorkspace> {
     processedCount: documents.filter((item) => item.status === "CHUNKED").length,
     questionCount: questionRows.length,
   };
+}
+
+export async function reviewTrainerAssessment(assessmentId: string, status: "APPROVED" | "REJECTED" | "PENDING_REVIEW") {
+  const { supabase, role } = await authenticatedRole();
+  if (role !== "TRAINER" && role !== "SUPER_ADMIN") throw new Error("FORBIDDEN");
+  const { error } = await supabase.rpc("review_my_generated_assessment", {
+    p_assessment_id: assessmentId,
+    p_status: status,
+  });
+  if (error) throw error;
 }
 
 export async function loadSystemHealth(): Promise<SystemHealth> {

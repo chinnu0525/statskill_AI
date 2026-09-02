@@ -9,6 +9,7 @@ export const runtime = "nodejs";
 type GenerateQuizRequest = {
   requestId: string;
   documentId: string;
+  competencyId: string;
   locale: "en" | "hi" | "te";
   questionCount: number;
   difficulty: "EASY" | "MEDIUM" | "HARD";
@@ -20,9 +21,10 @@ function parseRequest(value: unknown): GenerateQuizRequest | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const body = value as Record<string, unknown>;
   const keys = Object.keys(body);
-  if (keys.some((key) => !["requestId", "documentId", "locale", "questionCount", "difficulty"].includes(key))) return null;
+  if (keys.some((key) => !["requestId", "documentId", "competencyId", "locale", "questionCount", "difficulty"].includes(key))) return null;
   if (typeof body.requestId !== "string" || !uuidPattern.test(body.requestId)) return null;
   if (typeof body.documentId !== "string" || !uuidPattern.test(body.documentId)) return null;
+  if (typeof body.competencyId !== "string" || !uuidPattern.test(body.competencyId)) return null;
   if (body.locale !== "en" && body.locale !== "hi" && body.locale !== "te") return null;
   if (!Number.isInteger(body.questionCount) || (body.questionCount as number) < 1 || (body.questionCount as number) > 20) return null;
   if (body.difficulty !== "EASY" && body.difficulty !== "MEDIUM" && body.difficulty !== "HARD") return null;
@@ -95,6 +97,7 @@ export async function POST(request: Request) {
         locale: body.locale,
         questionCount: body.questionCount,
         difficulty: body.difficulty,
+        competencyId: body.competencyId,
         contextChunkIds: chunks.map((chunk) => chunk.id),
       },
     });
@@ -106,13 +109,14 @@ export async function POST(request: Request) {
       locale: body.locale,
       questionCount: body.questionCount,
       difficulty: body.difficulty,
-      competencyId: null,
+      competencyId: body.competencyId,
       chunks,
     });
 
     const { data: assessmentId, error: persistenceError } = await supabase.rpc("persist_my_generated_assessment", {
       p_generation_id: body.requestId,
       p_document_id: document.id,
+      p_competency_id: body.competencyId,
       p_title: generation.value.title,
       p_locale: body.locale,
       p_questions: generation.value.questions,

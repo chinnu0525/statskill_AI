@@ -261,11 +261,12 @@ export function AssessmentPanel({ locale, copy, onCompleted, refreshKey = 0, pre
           <div className="resultMetrics">
             <article><span>{copy.latestScore}</span><strong>{result.score}%</strong></article>
             <article><span>{copy.correctAnswers}</span><strong>{result.correct} / {result.total}</strong></article>
+            {result.currentLevel ? <article><span>{copy.competencyLevel}</span><strong>{result.currentLevel} / {result.requiredLevel ?? 5}</strong></article> : null}
             <article><span>{copy.completionStatus}</span><strong>{copy.completed}</strong></article>
           </div>
           <div className="resultFeedback">
             <div><strong>{copy.nextStep}</strong><p>{result.score >= 80 ? copy.nextStepStrong : copy.nextStepReview}</p></div>
-            <div><strong>{copy.secureScoring}</strong><p>{copy.secureScoringHint}</p></div>
+            <div><strong>{copy.secureScoring}</strong><p>{copy.bloomScoringHint}</p></div>
           </div>
           <button className="primaryButton" type="button" onClick={resetResult}>{copy.takeAnother}</button>
         </div>

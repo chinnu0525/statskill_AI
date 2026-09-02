@@ -1,6 +1,7 @@
 import type { Locale } from "../i18n/messages";
 
 export type AiDifficulty = "EASY" | "MEDIUM" | "HARD";
+export type BloomLevel = "REMEMBER" | "UNDERSTAND" | "APPLY" | "ANALYZE" | "EVALUATE" | "CREATE";
 export type McqOptionId = "A" | "B" | "C" | "D";
 
 export type GroundingContextChunk = {
@@ -31,6 +32,7 @@ export type GeneratedQuizQuestionDraft = {
   correctOptionId: McqOptionId;
   explanation: string;
   difficulty: AiDifficulty;
+  bloomLevel: BloomLevel;
   topic: string;
   sourceChunkIds: string[];
 };
@@ -66,6 +68,7 @@ export type AiValidationIssue = {
 
 const expectedOptionIds: McqOptionId[] = ["A", "B", "C", "D"];
 const supportedLocales = new Set<Locale>(["en", "hi", "te"]);
+const supportedBloomLevels = new Set<BloomLevel>(["REMEMBER", "UNDERSTAND", "APPLY", "ANALYZE", "EVALUATE", "CREATE"]);
 
 function normalize(value: string) {
   return value.trim().replace(/\s+/g, " ").toLocaleLowerCase();
@@ -138,6 +141,7 @@ export function validateGeneratedQuiz(draft: GeneratedQuizDraft, input: QuizGene
     }
     if (!question.explanation.trim()) issues.push({ code: "EXPLANATION_REQUIRED", path: `${base}.explanation`, message: "A grounded explanation is required." });
     if (!question.topic.trim()) issues.push({ code: "TOPIC_REQUIRED", path: `${base}.topic`, message: "A topic label is required." });
+    if (!supportedBloomLevels.has(question.bloomLevel)) issues.push({ code: "INVALID_BLOOM_LEVEL", path: `${base}.bloomLevel`, message: "Every question must use a supported Bloom taxonomy level." });
     if (!question.sourceChunkIds.length) issues.push({ code: "SOURCE_REQUIRED", path: `${base}.sourceChunkIds`, message: "Every generated question must cite at least one source chunk." });
 
     const uniqueSources = new Set(question.sourceChunkIds);

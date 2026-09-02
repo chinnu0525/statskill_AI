@@ -7,8 +7,10 @@ import {
   AiApiError,
   askGroundedTutor,
   generateDocumentQuiz,
+  listQuizCompetencies,
   listQuizReadyDocuments,
   type LocalAiProgress,
+  type QuizCompetency,
   type TutorResult,
 } from "../../src/services/ai";
 import type { LearningDocument } from "../../src/services/documents";
@@ -26,6 +28,8 @@ export function AiWorkspace({
 }) {
   const [documents, setDocuments] = useState<LearningDocument[]>([]);
   const [documentId, setDocumentId] = useState("");
+  const [competencies, setCompetencies] = useState<QuizCompetency[]>([]);
+  const [competencyId, setCompetencyId] = useState("");
   const [questionCount, setQuestionCount] = useState(3);
   const [difficulty, setDifficulty] = useState<AiDifficulty>("MEDIUM");
   const [quizRequestId, setQuizRequestId] = useState<string | null>(null);
@@ -40,14 +44,18 @@ export function AiWorkspace({
   useEffect(() => {
     setQuizRequestId(null);
     setTutorRequestId(null);
-    listQuizReadyDocuments()
-      .then((items) => {
+    Promise.all([listQuizReadyDocuments(), listQuizCompetencies()])
+      .then(([items, competencyItems]) => {
         setDocuments(items);
+        setCompetencies(competencyItems);
         setDocumentId((current) => current && items.some((item) => item.id === current) ? current : items[0]?.id ?? "");
+        setCompetencyId((current) => current && competencyItems.some((item) => item.id === current) ? current : competencyItems[0]?.id ?? "");
       })
       .catch(() => {
         setDocuments([]);
+        setCompetencies([]);
         setDocumentId("");
+        setCompetencyId("");
       });
   }, [materialsRefreshKey]);
 
@@ -75,7 +83,7 @@ export function AiWorkspace({
   }
 
   async function handleGenerateQuiz() {
-    if (!documentId || quizBusy) return;
+    if (!documentId || !competencyId || quizBusy) return;
     const requestId = quizRequestId ?? crypto.randomUUID();
     if (!quizRequestId) setQuizRequestId(requestId);
     setQuizBusy(true);
@@ -83,6 +91,7 @@ export function AiWorkspace({
     try {
       const result = await generateDocumentQuiz({
         documentId,
+        competencyId,
         locale,
         questionCount,
         difficulty,
@@ -159,6 +168,23 @@ export function AiWorkspace({
             </select>
           </label>
 
+          <label className="aiField">
+            <span>{copy.chooseCompetency}</span>
+            <select
+              value={competencyId}
+              onChange={(event) => {
+                setCompetencyId(event.target.value);
+                setQuizRequestId(null);
+              }}
+              disabled={!competencies.length || quizBusy}
+            >
+              {competencies.length ? competencies.map((competency) => (
+                <option key={competency.id} value={competency.id}>{competency.code} · {competency.name}</option>
+              )) : <option value="">{copy.noCompetencies}</option>}
+            </select>
+            <small className="muted">{copy.chooseCompetencyHint}</small>
+          </label>
+
           <div className="aiInlineFields">
             <label className="aiField">
               <span>{copy.questionCount}</span>
@@ -190,7 +216,7 @@ export function AiWorkspace({
             </label>
           </div>
 
-          <button className="primaryButton" type="button" onClick={handleGenerateQuiz} disabled={!documentId || quizBusy}>
+          <button className="primaryButton" type="button" onClick={handleGenerateQuiz} disabled={!documentId || !competencyId || quizBusy}>
             {quizBusy ? copy.generatingQuiz : copy.generateQuiz}
           </button>
           {quizMessage ? <p className="aiStatus" role="status">{quizMessage}</p> : null}

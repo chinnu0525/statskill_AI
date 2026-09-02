@@ -103,6 +103,7 @@
 .portalBrand small { display: block; margin-top: 4px; color: var(--portal-muted); font-size: .69rem; }
 
 .headerActions { display: flex; align-items: center; gap: 10px; }
+.notificationControl { position: relative; }
 .demoRoleSwitcher {
   display: flex;
   align-items: center;
@@ -124,6 +125,15 @@
   background: var(--portal-card);
   color: var(--portal-ink);
 }
+.iconButton { position: relative; cursor: pointer; }
+.notificationCount { position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px; display: grid; place-items: center; background: #dc2626; color: #fff; border: 2px solid var(--portal-card); font-size: .58rem; font-weight: 900; }
+.notificationPanel { position: absolute; z-index: 70; top: calc(100% + 10px); right: 0; width: min(360px, calc(100vw - 32px)); padding: 10px; border: 1px solid var(--portal-line); border-radius: 14px; background: var(--portal-card); color: var(--portal-ink); box-shadow: 0 20px 50px rgba(15,23,42,.22); }
+.notificationHeading { display: flex; align-items: center; justify-content: space-between; padding: 4px 5px 9px; border-bottom: 1px solid var(--portal-line); }
+.notificationHeading button { width: 30px; height: 30px; border: 0; border-radius: 8px; background: var(--portal-soft); color: inherit; font-size: 1.05rem; }
+.notificationItem { width: 100%; display: grid; gap: 4px; padding: 11px 8px; border: 0; border-bottom: 1px solid var(--portal-line); background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.notificationItem:hover { background: var(--portal-soft); }
+.notificationItem strong { color: var(--portal-navy); font-size: .75rem; }
+.notificationItem span,.notificationPanel>p { color: var(--portal-muted); font-size: .65rem; line-height: 1.45; }
 .profileChip {
   border: 0;
   background: transparent;
@@ -217,10 +227,11 @@
 
 .loopCard { align-self: center; border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.06); border-radius: 20px; padding: 22px; backdrop-filter: blur(12px); }
 .loopCard > span { color: #fdba74; font-size: .7rem; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
-.loopCard > div { margin-top: 10px; border: 1px solid rgba(255,255,255,.12); background: rgba(7,24,44,.52); border-radius: 12px; padding: 11px 12px; display: grid; grid-template-columns: 30px 1fr 22px; align-items: center; gap: 9px; }
+.loopCard > button { width: 100%; margin-top: 10px; border: 1px solid rgba(255,255,255,.12); background: rgba(7,24,44,.52); color: inherit; border-radius: 12px; padding: 11px 12px; display: grid; grid-template-columns: 30px 1fr 22px; align-items: center; gap: 9px; text-align: left; cursor: pointer; }
+.loopCard > button:focus-visible { outline: 3px solid #fdba74; outline-offset: 2px; }
 .loopCard b { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: rgba(249,115,22,.16); color: #fdba74; }
 .loopCard p { font-size: .82rem; color: #e2e8f0; margin: 0; text-transform: capitalize; }
-.loopCard i { color: #94a3b8; font-style: normal; }
+.loopCard i { color: #94a3b8; font-style: normal; text-align: center; }
 
 .metricGrid { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 14px; }
 .metricGrid.five { grid-template-columns: repeat(5, minmax(0,1fr)); }

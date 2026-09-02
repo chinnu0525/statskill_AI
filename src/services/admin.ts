@@ -16,6 +16,11 @@ export type AdminAnalytics = {
   completedEnrollments: number;
   completionRate: number;
   topGaps: AdminGapSummary[];
+  quarterlyLevelGain: number;
+  quarterlyTargetAttainment: number;
+  quarterlyEventCount: number;
+  quarterStart: string;
+  departmentProgress: Array<{ department: string; assessedEvents: number; averageLevelGain: number; targetAttainment: number }>;
 };
 
 export async function loadAdminAnalytics(): Promise<AdminAnalytics> {

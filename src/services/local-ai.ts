@@ -66,6 +66,7 @@ type RawQuizQuestion = {
   correctIndex?: unknown;
   explanation?: unknown;
   topic?: unknown;
+  bloomLevel?: unknown;
   sources?: unknown;
 };
 
@@ -255,7 +256,8 @@ function normalizeQuiz(raw: unknown, input: QuizGenerationInput, aliases: Map<st
       (question.correctIndex as number) < 0 ||
       (question.correctIndex as number) > 3 ||
       typeof question.explanation !== "string" ||
-      typeof question.topic !== "string"
+      typeof question.topic !== "string" ||
+      !["REMEMBER", "UNDERSTAND", "APPLY", "ANALYZE", "EVALUATE", "CREATE"].includes(String(question.bloomLevel))
     ) {
       throw new LocalAiError("LOCAL_AI_OUTPUT_INVALID");
     }
@@ -270,6 +272,7 @@ function normalizeQuiz(raw: unknown, input: QuizGenerationInput, aliases: Map<st
       explanation: question.explanation.trim(),
       difficulty: input.difficulty,
       topic: question.topic.trim(),
+      bloomLevel: question.bloomLevel as "REMEMBER" | "UNDERSTAND" | "APPLY" | "ANALYZE" | "EVALUATE" | "CREATE",
       sourceChunkIds: sources,
     };
   });
@@ -310,12 +313,13 @@ export async function generateLocalQuiz(
 
   const prompt = `Create exactly ${input.questionCount} ${input.difficulty.toLowerCase()} multiple-choice questions in ${localeName(input.locale)} using only the source excerpts below.
 Return exactly one JSON object in this shape:
-{"title":"...","questions":[{"question":"...","options":["...","...","...","..."],"correctIndex":0,"explanation":"...","topic":"...","sources":["S1"]}]}
+{"title":"...","questions":[{"question":"...","options":["...","...","...","..."],"correctIndex":0,"explanation":"...","topic":"...","bloomLevel":"APPLY","sources":["S1"]}]}
 Rules:
 - questions must contain exactly ${input.questionCount} unique items
 - options must contain exactly four distinct strings
 - correctIndex must be 0, 1, 2, or 3
 - every question and explanation must be directly supported by its cited sources
+- bloomLevel must be REMEMBER, UNDERSTAND, APPLY, ANALYZE, EVALUATE, or CREATE; prefer APPLY/ANALYZE when the source supports applied reasoning
 - sources may contain only the provided S-labels
 - do not use outside knowledge
 

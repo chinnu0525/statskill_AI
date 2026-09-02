@@ -30,7 +30,7 @@ export function rankLearningRecommendations(
     .map((candidate) => {
       const gap = gapByCompetency.get(candidate.competencyId);
       const gapWeight = gap ? gap.gapScore * 2 : 0;
-      const priorityWeight = gap?.priority === "HIGH" ? 30 : gap?.priority === "MEDIUM" ? 15 : 5;
+      const priorityWeight = gap?.priority === "CRITICAL" ? 35 : gap?.priority === "HIGH" ? 30 : gap?.priority === "MODERATE" ? 15 : 5;
       const durationPenalty = candidate.durationMinutes && candidate.durationMinutes > 360 ? 5 : 0;
       const score = gapWeight + priorityWeight + sourceWeight[candidate.source] - durationPenalty;
       return {
