@@ -155,14 +155,46 @@ export function PortalExperience(props: Props) {
   }
 
   return <div className={`nationalPortal appShell fontLevel${fontLevel} ${contrast ? "highContrast" : ""} ${sidebarOpen ? "sidebarOpen" : "sidebarClosed"}`}>
+    <header className="nationalMasthead">
+      <div className="mastheadGovernment">
+        <button className="mastheadMenuButton" type="button" aria-label={t.openNavigation} aria-expanded={sidebarOpen} aria-controls="portal-sidebar" onClick={() => setSidebarOpen(true)}>☰</button>
+        <span className="governmentMark" aria-hidden="true">🇮🇳</span>
+        <div><strong>{t.government}</strong><small>{t.ministry}</small></div>
+      </div>
+      <button className="mastheadBrand" onClick={() => go("home")} type="button">
+        <span className="brandMark">SA</span>
+        <span><strong>StatSkill <em>AI</em></strong><small>{t.portalSubtitle}</small></span>
+      </button>
+      <div className="mastheadActions">
+        <div className="notificationControl">
+          <button className="iconButton" type="button" aria-label={t.notifications} aria-expanded={notificationsOpen} onClick={() => setNotificationsOpen((value) => !value)}>
+            🔔{notifications.length ? <span className="notificationCount">{notifications.length}</span> : null}
+          </button>
+          {notificationsOpen ? <aside className="notificationPanel" aria-label={t.notifications}>
+            <div className="notificationHeading"><strong>{t.notifications}</strong><button type="button" onClick={() => setNotificationsOpen(false)} aria-label={t.closeNotifications}>×</button></div>
+            {notifications.length ? notifications.map((item) => <button className="notificationItem" type="button" key={item.id} onClick={() => go(item.target)}><strong>{item.title}</strong><span>{item.detail}</span></button>) : <p>{t.noNotifications}</p>}
+          </aside> : null}
+        </div>
+      </div>
+    </header>
+
     <button className="sidebarScrim" type="button" aria-label={t.closeNavigation} onClick={() => setSidebarOpen(false)}/>
     <aside className="appSidebar" id="portal-sidebar" aria-label={t.primaryNavigation}>
       <div className="sidebarTop">
-        <button className="portalBrand" onClick={() => go("home")} type="button">
-          <span className="brandMark">SA</span>
-          <span><strong>StatSkill <em>AI</em></strong><small>{t.portalSubtitle}</small></span>
-        </button>
+        <strong>{t.menuLabel}</strong>
         <button className="sidebarToggle" type="button" aria-label={t.closeNavigation} aria-controls="portal-sidebar" onClick={() => setSidebarOpen(false)}>←</button>
+      </div>
+
+      <div className="sidebarUtilities sidebarUtilitiesTop">
+        <div className="sidebarA11y" role="group" aria-label={t.font}>
+          <button onClick={() => setFontLevel(0)} type="button" aria-pressed={fontLevel === 0}>A−</button>
+          <button onClick={() => setFontLevel(1)} type="button" aria-pressed={fontLevel === 1}>A</button>
+          <button onClick={() => setFontLevel(2)} type="button" aria-pressed={fontLevel === 2}>A+</button>
+          <button className="contrastButton" onClick={() => setContrast((value) => !value)} type="button" aria-pressed={contrast}>◐ <span>{t.contrast}</span></button>
+        </div>
+        <label className="sidebarLanguage"><span>{t.language}</span><select value={props.locale} onChange={(event) => props.onLocaleChange(event.target.value as Locale)} aria-label={t.language}>
+          {(["en", "hi", "te"] as Locale[]).map((locale) => <option key={locale} value={locale}>{props.localeLabels[locale]}</option>)}
+        </select></label>
       </div>
 
       <button className="sidebarProfile" type="button" onClick={() => go("profile")}>
@@ -174,38 +206,16 @@ export function PortalExperience(props: Props) {
         {nav.map((item) => <button key={item.id} type="button" className={view === item.id ? "active" : ""} aria-current={view === item.id ? "page" : undefined} onClick={() => go(item.id)}><span className="navSymbol" aria-hidden="true">{navSymbols[item.id]}</span><span>{t[item.key]}</span></button>)}
       </nav>
 
-      <div className="sidebarUtilities">
-        <div className="sidebarA11y" role="group" aria-label={t.font}>
-          <button onClick={() => setFontLevel(0)} type="button" aria-pressed={fontLevel === 0}>A−</button>
-          <button onClick={() => setFontLevel(1)} type="button" aria-pressed={fontLevel === 1}>A</button>
-          <button onClick={() => setFontLevel(2)} type="button" aria-pressed={fontLevel === 2}>A+</button>
-          <button className="contrastButton" onClick={() => setContrast((value) => !value)} type="button" aria-pressed={contrast}>◐ <span>{t.contrast}</span></button>
-        </div>
-        <label className="sidebarLanguage"><span>{t.language}</span><select value={props.locale} onChange={(event) => props.onLocaleChange(event.target.value as Locale)} aria-label={t.language}>
-          {(["en", "hi", "te"] as Locale[]).map((locale) => <option key={locale} value={locale}>{props.localeLabels[locale]}</option>)}
-        </select></label>
+      <div className="sidebarUtilities sidebarUtilitiesBottom">
         <button className="sidebarSignOut" type="button" onClick={props.onSignOut}><span aria-hidden="true">↪</span>{t.signOut}</button>
-        <small className="sidebarGov"><strong>{t.government}</strong>{t.ministry}</small>
       </div>
     </aside>
 
     <div className="portalWorkspace">
       <header className="portalHeader">
         <div className="workspaceHeading">
-          <button className="menuButton" type="button" aria-label={t.openNavigation} aria-expanded={sidebarOpen} aria-controls="portal-sidebar" onClick={() => setSidebarOpen(true)}>☰</button>
-          <div><small>{t.portalSubtitle}</small><strong>{activeNavItem ? t[activeNavItem.key] : "StatSkill AI"}</strong></div>
+          <div><strong>{activeNavItem ? t[activeNavItem.key] : "StatSkill AI"}</strong></div>
         </div>
-        <div className="headerActions">
-        <div className="notificationControl">
-          <button className="iconButton" type="button" aria-label={t.notifications} aria-expanded={notificationsOpen} onClick={() => setNotificationsOpen((value) => !value)}>
-            🔔{notifications.length ? <span className="notificationCount">{notifications.length}</span> : null}
-          </button>
-          {notificationsOpen ? <aside className="notificationPanel" aria-label={t.notifications}>
-            <div className="notificationHeading"><strong>{t.notifications}</strong><button type="button" onClick={() => setNotificationsOpen(false)} aria-label={t.closeNotifications}>×</button></div>
-            {notifications.length ? notifications.map((item) => <button className="notificationItem" type="button" key={item.id} onClick={() => go(item.target)}><strong>{item.title}</strong><span>{item.detail}</span></button>) : <p>{t.noNotifications}</p>}
-          </aside> : null}
-        </div>
-      </div>
       </header>
 
       <main className="portalMain">

@@ -11,6 +11,7 @@
   --portal-card: #ffffff;
   --portal-soft: #eef3f8;
   --sidebar-width: 280px;
+  --masthead-height: 76px;
   --z-sidebar: 80;
   --z-scrim: 70;
   --z-sticky: 40;
@@ -22,9 +23,88 @@
   background: var(--portal-bg);
 }
 
+.nationalMasthead {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: calc(var(--z-sidebar) + 5);
+  min-height: var(--masthead-height);
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto minmax(260px, 1fr);
+  align-items: center;
+  gap: 18px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--portal-line);
+  background: var(--portal-card);
+}
+
+.mastheadGovernment,
+.mastheadBrand,
+.mastheadActions { display: flex; align-items: center; }
+
+.mastheadGovernment { min-width: 0; gap: 10px; }
+.mastheadGovernment > div { min-width: 0; }
+.mastheadGovernment strong,
+.mastheadGovernment small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mastheadGovernment strong { color: var(--portal-ink); font-size: .7rem; }
+.mastheadGovernment small { max-width: 330px; margin-top: 3px; color: var(--portal-muted); font-size: .58rem; }
+
+.governmentMark {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--portal-line);
+  border-radius: 10px;
+  background: var(--portal-card);
+  font-size: 1.18rem;
+}
+
+.mastheadMenuButton {
+  width: 38px;
+  height: 38px;
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--portal-line);
+  border-radius: 10px;
+  background: var(--portal-card);
+  color: var(--portal-ink);
+}
+.mastheadMenuButton:hover { background: var(--portal-soft); }
+.sidebarOpen .mastheadMenuButton { visibility: hidden; }
+
+.mastheadBrand {
+  justify-self: center;
+  gap: 9px;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--portal-ink);
+  text-align: left;
+}
+.mastheadBrand:hover { background: var(--portal-soft); }
+.mastheadBrand .brandMark {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--portal-navy);
+  box-shadow: none;
+  font-size: .76rem;
+}
+.mastheadBrand strong,
+.mastheadBrand small { display: block; }
+.mastheadBrand strong { color: var(--portal-navy); font-size: 1rem; letter-spacing: -.02em; }
+.mastheadBrand em { color: var(--portal-saffron); font-style: normal; }
+.mastheadBrand small { margin-top: 2px; color: var(--portal-muted); font-size: .55rem; }
+
+.mastheadActions { justify-self: end; justify-content: flex-end; }
+
 .appSidebar {
   position: fixed;
-  inset: 0 auto 0 0;
+  inset: var(--masthead-height) auto 0 0;
   z-index: var(--z-sidebar);
   width: var(--sidebar-width);
   display: flex;
@@ -43,6 +123,7 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  padding-top: var(--masthead-height);
 }
 
 .sidebarOpen .portalWorkspace { margin-left: var(--sidebar-width); }
@@ -53,8 +134,10 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 2px 14px;
+  justify-content: space-between;
+  padding: 0 2px 12px;
 }
+.sidebarTop > strong { color: var(--portal-ink); font-size: .74rem; }
 
 .sidebarTop .portalBrand {
   flex: 1;
@@ -110,7 +193,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 2px 0 12px;
+  margin: 0 0 12px;
   padding: 10px;
   border: 0;
   border-radius: 12px;
@@ -200,6 +283,15 @@
   border-top: 1px solid var(--portal-line);
 }
 
+.sidebarUtilitiesTop {
+  margin-bottom: 12px;
+  padding: 0 0 12px;
+  border-top: 0;
+  border-bottom: 1px solid var(--portal-line);
+}
+
+.sidebarUtilitiesBottom { padding-top: 10px; }
+
 .sidebarA11y { display: grid; grid-template-columns: 34px 34px 34px 1fr; gap: 6px; }
 .sidebarA11y button {
   min-height: 34px;
@@ -243,12 +335,9 @@
 }
 .sidebarSignOut:hover { background: var(--portal-soft); color: var(--portal-ink); }
 
-.sidebarGov { color: var(--portal-muted); font-size: .55rem; line-height: 1.45; }
-.sidebarGov strong { display: block; color: var(--portal-ink); }
-
 .portalHeader {
   position: sticky;
-  top: 0;
+  top: var(--masthead-height);
   z-index: var(--z-sticky);
   min-height: 68px;
   padding: 10px clamp(16px, 3vw, 34px);
@@ -260,11 +349,8 @@
 
 .workspaceHeading { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .workspaceHeading > div { min-width: 0; }
-.workspaceHeading small,
 .workspaceHeading strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.workspaceHeading small { color: var(--portal-muted); font-size: .6rem; }
-.workspaceHeading strong { margin-top: 2px; color: var(--portal-ink); font-size: .9rem; }
-.sidebarOpen .menuButton { display: none; }
+.workspaceHeading strong { color: var(--portal-ink); font-size: .9rem; }
 
 .notificationPanel {
   z-index: var(--z-popover);
@@ -451,6 +537,7 @@
 .highContrast .heroBadge { background: #2c2c2c; color: #fff; }
 .highContrast .sidebarProfile > span { background: #fff; color: #000; }
 .highContrast .sidebarTop .brandMark { color: #000; }
+.highContrast .mastheadBrand .brandMark { background: #fff; color: #000; }
 
 .publicAuthPage { background: var(--portal-bg); }
 .authStory { background: var(--portal-navy-deep); }
@@ -471,18 +558,28 @@
   .sidebarOpen .portalWorkspace { margin-left: 0; }
   .sidebarOpen .sidebarScrim {
     position: fixed;
-    inset: 0;
+    inset: var(--masthead-height) 0 0;
     z-index: var(--z-scrim);
     display: block;
     border: 0;
     background: rgba(16, 38, 59, .44);
   }
-  .sidebarOpen .menuButton { display: none; }
 }
 
 @media (max-width: 720px) {
-  :root { --sidebar-width: min(88vw, 300px); }
-  .portalHeader { min-height: 62px; padding: 8px 14px; }
+  :root { --sidebar-width: min(88vw, 300px); --masthead-height: 68px; }
+  .nationalMasthead { grid-template-columns: 1fr auto 1fr; gap: 8px; padding: 8px 12px; }
+  .mastheadGovernment { gap: 6px; }
+  .mastheadGovernment small,
+  .mastheadBrand small { display: none; }
+  .mastheadGovernment strong { font-size: .6rem; }
+  .governmentMark,
+  .mastheadMenuButton,
+  .mastheadBrand .brandMark,
+  .iconButton { width: 34px; height: 34px; border-radius: 9px; }
+  .mastheadBrand { gap: 7px; padding: 3px 5px; }
+  .mastheadBrand strong { font-size: .86rem; }
+  .portalHeader { min-height: 54px; padding: 8px 14px; }
   .portalMain { padding: 16px 14px 24px; }
   .workspaceHeading small { display: none; }
   .heroPanel { grid-template-columns: 1fr; gap: 22px; padding: 22px 18px; border-radius: 12px; }
@@ -494,6 +591,11 @@
   .portalStatCard { min-height: 100px; }
   .portalFooter { align-items: flex-start; flex-direction: column; }
   .notificationPanel { position: fixed; inset: 70px 14px auto; width: auto; }
+}
+
+@media (max-width: 520px) {
+  .mastheadGovernment > div { display: none; }
+  .mastheadBrand .brandMark { display: none; }
 }
 
 @media (max-width: 440px) {
