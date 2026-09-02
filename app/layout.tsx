@@ -13,6 +13,7 @@ import "./closed-loop.css";
 import "./learner-insights.css";
 import "./role-workspaces.css";
 import "./lovable-port.css";
+import "./minimal-shell.css";
 
 export const metadata: Metadata = {
   title: "StatSkill AI | National Competency & Learning Portal",

@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import type { Locale } from "../../src/i18n/messages";
 import { portalMessages } from "../../src/i18n/portal-messages";
 import { ExternalCatalogPanel, LearningPathPanel } from "./LearningCatalogPanels";
@@ -58,6 +58,22 @@ const navConfig: Array<{
   { id: "profile", key: "profile", roles: "all" },
 ];
 
+const navSymbols: Record<PortalView, string> = {
+  home: "⌂",
+  dashboard: "▦",
+  framework: "◎",
+  assessment: "✓",
+  advisor: "✦",
+  learning: "▶",
+  igot: "↗",
+  generator: "◇",
+  trainer: "◫",
+  admin: "▥",
+  superadmin: "⚙",
+  reports: "▤",
+  profile: "○",
+};
+
 function initialRole(role?: string | null): PortalRole {
   if (role === "SUPER_ADMIN") return "superadmin";
   if (role === "ADMIN") return "admin";
@@ -96,7 +112,7 @@ export function PortalExperience(props: Props) {
   const [view, setView] = useState<PortalView>(() => initialView(props.actualRole));
   const [fontLevel, setFontLevel] = useState(1);
   const [contrast, setContrast] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const nav = useMemo(() => navConfig.filter((item) => item.roles === "all" || item.roles.includes(role)), [role]);
@@ -123,37 +139,63 @@ export function PortalExperience(props: Props) {
     if (activeCourses) items.push({ id: "learning", title: t.learningReminder, detail: t.learningReminderHint.replace("{count}", String(activeCourses)), target: "learning" });
     return items;
   }, [highPriorityGaps, props.assessmentsCompleted, props.courses, role, t]);
+  const activeNavItem = nav.find((item) => item.id === view);
+
+  useEffect(() => {
+    if (window.matchMedia("(max-width: 960px)").matches) setSidebarOpen(false);
+  }, []);
 
   function go(next: PortalView) {
     const allowed = navConfig.find((item) => item.id === next);
     if (!allowed || (allowed.roles !== "all" && !allowed.roles.includes(role))) return;
     setView(next);
-    setMobileOpen(false);
+    if (window.matchMedia("(max-width: 960px)").matches) setSidebarOpen(false);
     setNotificationsOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  return <div className={`nationalPortal fontLevel${fontLevel} ${contrast ? "highContrast" : ""}`}>
-    <div className="govStrip">
-      <div><strong>{t.government}</strong><span>{t.ministry}</span></div>
-      <div className="govTools">
-        <span>{t.font}</span>
-        <button onClick={() => setFontLevel(0)} type="button">A−</button>
-        <button onClick={() => setFontLevel(1)} type="button">A</button>
-        <button onClick={() => setFontLevel(2)} type="button">A+</button>
-        <button onClick={() => setContrast((value) => !value)} type="button">◐ {t.contrast}</button>
-        <select value={props.locale} onChange={(event) => props.onLocaleChange(event.target.value as Locale)} aria-label={t.language}>
-          {(["en", "hi", "te"] as Locale[]).map((locale) => <option key={locale} value={locale}>{props.localeLabels[locale]}</option>)}
-        </select>
+  return <div className={`nationalPortal appShell fontLevel${fontLevel} ${contrast ? "highContrast" : ""} ${sidebarOpen ? "sidebarOpen" : "sidebarClosed"}`}>
+    <button className="sidebarScrim" type="button" aria-label={t.closeNavigation} onClick={() => setSidebarOpen(false)}/>
+    <aside className="appSidebar" id="portal-sidebar" aria-label={t.primaryNavigation}>
+      <div className="sidebarTop">
+        <button className="portalBrand" onClick={() => go("home")} type="button">
+          <span className="brandMark">SA</span>
+          <span><strong>StatSkill <em>AI</em></strong><small>{t.portalSubtitle}</small></span>
+        </button>
+        <button className="sidebarToggle" type="button" aria-label={t.closeNavigation} aria-controls="portal-sidebar" onClick={() => setSidebarOpen(false)}>←</button>
       </div>
-    </div>
 
-    <header className="portalHeader">
-      <button className="portalBrand" onClick={() => go("home")} type="button">
-        <span className="brandMark">SA</span>
-        <span><strong>StatSkill <em>AI</em></strong><small>{t.portalSubtitle}</small></span>
+      <button className="sidebarProfile" type="button" onClick={() => go("profile")}>
+        <span>{firstName.slice(0, 1).toUpperCase()}</span>
+        <div><strong>{props.fullName || t.learner}</strong><small>{props.actualRole || "OFFICIAL"}</small></div>
       </button>
-      <div className="headerActions">
+
+      <nav className="portalNav">
+        {nav.map((item) => <button key={item.id} type="button" className={view === item.id ? "active" : ""} aria-current={view === item.id ? "page" : undefined} onClick={() => go(item.id)}><span className="navSymbol" aria-hidden="true">{navSymbols[item.id]}</span><span>{t[item.key]}</span></button>)}
+      </nav>
+
+      <div className="sidebarUtilities">
+        <div className="sidebarA11y" role="group" aria-label={t.font}>
+          <button onClick={() => setFontLevel(0)} type="button" aria-pressed={fontLevel === 0}>A−</button>
+          <button onClick={() => setFontLevel(1)} type="button" aria-pressed={fontLevel === 1}>A</button>
+          <button onClick={() => setFontLevel(2)} type="button" aria-pressed={fontLevel === 2}>A+</button>
+          <button className="contrastButton" onClick={() => setContrast((value) => !value)} type="button" aria-pressed={contrast}>◐ <span>{t.contrast}</span></button>
+        </div>
+        <label className="sidebarLanguage"><span>{t.language}</span><select value={props.locale} onChange={(event) => props.onLocaleChange(event.target.value as Locale)} aria-label={t.language}>
+          {(["en", "hi", "te"] as Locale[]).map((locale) => <option key={locale} value={locale}>{props.localeLabels[locale]}</option>)}
+        </select></label>
+        <button className="sidebarSignOut" type="button" onClick={props.onSignOut}><span aria-hidden="true">↪</span>{t.signOut}</button>
+        <small className="sidebarGov"><strong>{t.government}</strong>{t.ministry}</small>
+      </div>
+    </aside>
+
+    <div className="portalWorkspace">
+      <header className="portalHeader">
+        <div className="workspaceHeading">
+          <button className="menuButton" type="button" aria-label={t.openNavigation} aria-expanded={sidebarOpen} aria-controls="portal-sidebar" onClick={() => setSidebarOpen(true)}>☰</button>
+          <div><small>{t.portalSubtitle}</small><strong>{activeNavItem ? t[activeNavItem.key] : "StatSkill AI"}</strong></div>
+        </div>
+        <div className="headerActions">
         <div className="notificationControl">
           <button className="iconButton" type="button" aria-label={t.notifications} aria-expanded={notificationsOpen} onClick={() => setNotificationsOpen((value) => !value)}>
             🔔{notifications.length ? <span className="notificationCount">{notifications.length}</span> : null}
@@ -163,20 +205,10 @@ export function PortalExperience(props: Props) {
             {notifications.length ? notifications.map((item) => <button className="notificationItem" type="button" key={item.id} onClick={() => go(item.target)}><strong>{item.title}</strong><span>{item.detail}</span></button>) : <p>{t.noNotifications}</p>}
           </aside> : null}
         </div>
-        <button className="profileChip" type="button" onClick={() => go("profile")}>
-          <span>{firstName.slice(0, 1).toUpperCase()}</span>
-          <div><strong>{props.fullName || t.learner}</strong><small>{props.actualRole || "OFFICIAL"}</small></div>
-        </button>
-        <button className="headerSignOut" type="button" onClick={props.onSignOut}>{t.signOut}</button>
-        <button className="menuButton" type="button" aria-expanded={mobileOpen} onClick={() => setMobileOpen((value) => !value)}>☰</button>
       </div>
-    </header>
+      </header>
 
-    <nav className={`portalNav ${mobileOpen ? "open" : ""}`}>
-      {nav.map((item) => <button key={item.id} type="button" className={view === item.id ? "active" : ""} onClick={() => go(item.id)}>{t[item.key]}</button>)}
-    </nav>
-
-    <main className="portalMain">
+      <main className="portalMain">
       {view === "home" && <div className="portalStack">
         <section className="heroPanel">
           <div className="heroCopy">
@@ -203,11 +235,6 @@ export function PortalExperience(props: Props) {
           <StatCard label={t.assessments} value={props.assessmentsCompleted ?? "—"} note={props.assessmentsCompleted === undefined ? t.unavailable : t.measuredCapability}/>
         </section>}
 
-        <section className="sectionBlock">
-          <div className="sectionHeading"><span>{t.howBadge}</span><h2>{t.howTitle}</h2><p>{t.howText}</p></div>
-          <div className="workflowGrid">{t.workflow.map(([title, text], index) => <article key={title}><span>0{index + 1}</span><h3>{title}</h3><p>{text}</p></article>)}</div>
-        </section>
-        <section className="featureGrid">{t.featureNames.map((name) => <article key={name}><strong>{name}</strong><p>{t.featureText}</p></article>)}</section>
       </div>}
 
       {view === "dashboard" && <div className="portalStack">
@@ -253,9 +280,10 @@ export function PortalExperience(props: Props) {
       {view === "superadmin" && <div className="portalStack"><section className="pageIntro"><span>{t.superBadge}</span><h1>{t.superTitle}</h1><p>{t.superText}</p></section>{props.superAdminNode || <DemoBanner text={t.adminUnavailable}/>}</div>}
       {view === "reports" && <div className="portalStack"><section className="pageIntro"><span>{t.reportsBadge}</span><h1>{t.reportsTitle}</h1><p>{t.reportsText}</p></section>{props.reportsNode}</div>}
       {view === "profile" && <div className="portalStack"><section className="pageIntro profileIntro"><div className="profileAvatar">{firstName.slice(0, 1).toUpperCase()}</div><div><span>{t.profileBadge}</span><h1>{props.fullName || t.learner}</h1><p>{t.profileText}</p></div></section>{props.profileNode}<section className="metricGrid"><StatCard label={t.overallCompetency} value={`${props.competencyScore}%`} note={t.measuredCapability}/><StatCard label={t.skillGaps} value={props.gaps.length} note={t.measuredCapability}/><StatCard label={t.learningCatalog} value={props.courses.length} note={t.measuredCapability}/></section></div>}
-    </main>
+      </main>
 
-    <footer className="portalFooter"><div><strong>StatSkill AI</strong><p>{t.portalSubtitle}</p></div><div><strong>{t.framework}</strong><span>{t.advisor}</span><span>{t.generator}</span></div><div><strong>{t.igot}</strong><span>MoSPI</span><span>NSSTA</span></div><small>{t.demoPrivacy}</small></footer>
+      <footer className="portalFooter"><strong>StatSkill AI</strong><small>{t.demoPrivacy}</small></footer>
+    </div>
     <button className="floatingAssistant" type="button" onClick={() => setAssistantOpen((value) => !value)}>✦ <span>StatSkill AI</span></button>
     {assistantOpen && <aside className="assistantDrawer"><div className="cardHeading"><div><span>{t.groundedAssistant}</span><h2>{t.assistantTitle}</h2></div><button type="button" onClick={() => setAssistantOpen(false)}>×</button></div><p>{t.assistantText}</p><div className="quickPrompts"><button type="button" onClick={() => { setAssistantOpen(false); go("generator"); }}>{t.askGrounded}</button><button type="button" onClick={() => { setAssistantOpen(false); go("generator"); }}>{t.generatePractice}</button><button type="button" onClick={() => { setAssistantOpen(false); go("framework"); }}>{t.viewCompetencyGaps}</button></div><small>{t.aiDisclaimer}</small></aside>}
   </div>;
