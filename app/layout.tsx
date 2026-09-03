@@ -3,6 +3,7 @@ import "./globals.css";
 import "./portal.css";
 import "./portal-fixes.css";
 import "./auth-portal.css";
+import "./auth-recovery.css";
 import "./assessment.css";
 import "./admin.css";
 import "./retrieval.css";
