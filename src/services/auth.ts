@@ -47,6 +47,17 @@ export async function signUp(email: string, password: string, profile: SignupPro
   });
 }
 
+export async function resendSignupConfirmation(email: string) {
+  const supabase = createClient();
+  return supabase.auth.resend({
+    type: "signup",
+    email,
+    options: {
+      emailRedirectTo: getEmailRedirectUrl(),
+    },
+  });
+}
+
 export async function signOut() {
   const supabase = createClient();
   return supabase.auth.signOut();

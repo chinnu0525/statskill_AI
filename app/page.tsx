@@ -7,7 +7,7 @@ import { adminMessages } from "../src/i18n/admin-messages";
 import { retrievalMessages } from "../src/i18n/retrieval-messages";
 import { aiMessages } from "../src/i18n/ai-messages";
 import { portalMessages } from "../src/i18n/portal-messages";
-import { getCurrentUser, signIn, signOut, signUp, type SignupProfile } from "../src/services/auth";
+import { getCurrentUser, resendSignupConfirmation, signIn, signOut, signUp, type SignupProfile } from "../src/services/auth";
 import { loadDashboardData, updatePreferredLocale, type DashboardData } from "../src/services/dashboard";
 import { isSupabaseConfigured } from "../src/lib/supabase/client";
 import { DocumentUpload } from "./components/DocumentUpload";
@@ -23,6 +23,11 @@ const locales: Locale[] = ["en", "hi", "te"];
 const storageKey = "statskill-locale";
 const emptyProfile = { designation: "", department: "", cadre: "", assignment: "", qualification: "", experienceYears: null, priorTraining: "" };
 
+function authErrorCode(error: unknown) {
+  if (!error || typeof error !== "object" || !("code" in error)) return "";
+  return typeof error.code === "string" ? error.code : "";
+}
+
 export default function Home() {
   const [locale, setLocale] = useState<Locale>("en");
   const [hydrated, setHydrated] = useState(false);
@@ -31,6 +36,8 @@ export default function Home() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
   const [authMessage, setAuthMessage] = useState("");
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState("");
+  const [resendingConfirmation, setResendingConfirmation] = useState(false);
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [loadingDashboard, setLoadingDashboard] = useState(false);
   const [assessmentRefreshKey, setAssessmentRefreshKey] = useState(0);
@@ -62,6 +69,17 @@ export default function Home() {
     return () => { active = false; };
   }, [hydrated, configured]);
 
+  useEffect(() => {
+    if (!hydrated) return;
+    const query = new URLSearchParams(window.location.search);
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const code = query.get("error_code") ?? hash.get("error_code");
+    if (code === "otp_expired") {
+      setAuthMessage(copy.verificationLinkExpired);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, [copy.verificationLinkExpired, hydrated]);
+
   async function refreshDashboard(targetLocale: Locale) {
     setLoadingDashboard(true);
     try { setDashboard(await loadDashboardData(targetLocale)); }
@@ -76,7 +94,7 @@ export default function Home() {
   }
 
   async function handleAuth(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setAuthMessage("");
+    event.preventDefault(); setAuthMessage(""); setPendingVerificationEmail("");
     const form = new FormData(event.currentTarget);
     const email = String(form.get("email") ?? "").trim();
     const password = String(form.get("password") ?? "");
@@ -88,12 +106,36 @@ export default function Home() {
         };
         const { data, error } = await signUp(email, password, profile, locale);
         if (error) throw error;
-        if (!data.session) { setAuthMessage(copy.checkEmail); return; }
+        if (!data.session) { setPendingVerificationEmail(email); setAuthMessage(copy.checkEmail); return; }
       } else {
         const { error } = await signIn(email, password); if (error) throw error;
       }
       setAuthenticated(true); await refreshDashboard(locale);
-    } catch { setAuthMessage(copy.authError); }
+    } catch (error) {
+      const code = authErrorCode(error);
+      if (code === "email_not_confirmed") {
+        setPendingVerificationEmail(email);
+        setAuthMessage(copy.emailNotConfirmed);
+      } else if (code === "over_email_send_rate_limit") {
+        setAuthMessage(copy.verificationRateLimit);
+      } else {
+        setAuthMessage(copy.authError);
+      }
+    }
+  }
+
+  async function handleResendConfirmation() {
+    if (!pendingVerificationEmail || resendingConfirmation) return;
+    setResendingConfirmation(true);
+    try {
+      const { error } = await resendSignupConfirmation(pendingVerificationEmail);
+      if (error) throw error;
+      setAuthMessage(copy.verificationSent);
+    } catch (error) {
+      setAuthMessage(authErrorCode(error) === "over_email_send_rate_limit" ? copy.verificationRateLimit : copy.authError);
+    } finally {
+      setResendingConfirmation(false);
+    }
   }
 
   async function handleSignOut() { await signOut(); setAuthenticated(false); setDashboard(null); setGeneratedAssessmentId(""); }
@@ -110,8 +152,8 @@ export default function Home() {
         {authMode === "signup" && <><div className="authFormGrid"><label><span>{copy.fullName}</span><input name="fullName" autoComplete="name" required/></label><label><span>{pc.designationLabel}</span><input name="designation"/></label><label><span>{pc.departmentLabel}</span><input name="department"/></label><label><span>{pc.cadreLabel}</span><input name="cadre"/></label></div><details className="profileDisclosure"><summary>{pc.careerContext} <span>{pc.optionalRecommended}</span></summary><div className="authFormGrid disclosureGrid"><label className="wide"><span>{pc.assignmentLabel}</span><input name="assignment"/></label><label><span>{pc.qualificationLabel}</span><input name="qualification"/></label><label><span>{pc.experienceLabel}</span><input name="experienceYears" type="number" min="0" max="50" step="1"/></label><label className="wide"><span>{pc.priorTrainingLabel}</span><textarea name="priorTraining" rows={3}/></label></div></details></>}
         <div className="authFormGrid credentialsGrid"><label><span>{copy.email}</span><input name="email" type="email" autoComplete="email" required/></label><label><span>{copy.password}</span><input name="password" type="password" minLength={8} autoComplete={authMode === "signin" ? "current-password" : "new-password"} required/></label></div><button className="portalAuthSubmit" type="submit" disabled={!configured}>{authMode === "signin" ? copy.signIn : copy.createAccount}</button>
       </form>
-      {authMessage && <p className="authMessage portalAuthMessage" role="status">{authMessage}</p>}
-      <div className="authSwitchRow"><span>{authMode === "signin" ? copy.noAccount : copy.haveAccount}</span><button type="button" onClick={() => { setAuthMode(authMode === "signin" ? "signup" : "signin"); setAuthMessage(""); }}>{authMode === "signin" ? copy.createAccount : copy.signIn}</button></div><small className="authPrivacyNote">{pc.demoPrivacy}</small>
+      {authMessage && <div className="authMessage portalAuthMessage" role="status"><span>{authMessage}</span>{pendingVerificationEmail && <button className="authResendButton" type="button" onClick={handleResendConfirmation} disabled={resendingConfirmation}>{resendingConfirmation ? copy.resendingVerification : copy.resendVerification}</button>}</div>}
+      <div className="authSwitchRow"><span>{authMode === "signin" ? copy.noAccount : copy.haveAccount}</span><button type="button" onClick={() => { setAuthMode(authMode === "signin" ? "signup" : "signin"); setAuthMessage(""); setPendingVerificationEmail(""); }}>{authMode === "signin" ? copy.createAccount : copy.signIn}</button></div><small className="authPrivacyNote">{pc.demoPrivacy}</small>
     </section>
   </main>;
 
